@@ -1,0 +1,24 @@
+{
+  "name": "claude-pet",
+  "version": "0.1.0",
+  "description": "Anime desktop pet that reacts to Claude Code",
+  "main": "src/main.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/physics.test.js",
+    "art": "node tools/process-art.js",
+    "pack": "node tools/pack.js",
+    "hooks:install": "node tools/hooks.js install",
+    "hooks:uninstall": "node tools/hooks.js uninstall",
+    "hooks:status": "node tools/hooks.js status"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "sharp": "^0.35.5"
+  },
+  "dependencies": {
+    "koffi": "^3.3.3"
+  }
+}

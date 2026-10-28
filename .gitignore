@@ -1,0 +1,26 @@
+# dependencies and build output
+node_modules/
+dist/
+
+# characters that are not part of the public project
+characters/kurumi/
+characters/_wip/
+
+# old versions of source art
+characters/*/raw/_old/
+
+# files the app and the art tool generate
+characters/README.txt
+characters/*/import-log.txt
+characters/*/_contact-*.png
+
+# private working notes
+GEMINI-PROMPTS.md
+
+# logs and editor/OS files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/

@@ -1,0 +1,28 @@
+{
+  "name": "Sonnet",
+  "title": "Sonnet 5.5",
+  "height": 340,
+  "fps": 6,
+  "frames": {
+    "idle": "idle.png",
+    "blink": "blink.png",
+    "thinking": "thinking.png",
+    "working": "working.png",
+    "waiting": "waiting.png",
+    "happy": "happy.png",
+    "thanks": "thanks.png",
+    "oops": "oops.png",
+    "sleeping": "sleeping.png",
+    "held": "held.png",
+    "fall": "fall.png",
+    "jump": "jump.png",
+    "sit": "sit.png",
+    "walk": ["walk.png", "walk2.png"],
+    "climb": ["climb.png", "climb2.png"]
+  },
+  "motion": {
+    "walk": { "facing": "left" },
+    "jump": { "facing": "left" },
+    "climb": { "facing": "left" }
+  }
+}
