@@ -7,6 +7,13 @@ the edges of your windows, jumps between them, sits on a window's edge, and fall
 Claude Code's HTTP hooks POST each event to a tiny server on `127.0.0.1:47821`. Nothing leaves your computer and no
 API key is involved. This is an unofficial fan project, not affiliated with or endorsed by Anthropic.
 
+## Characters
+
+- **Sonnet**: an original character (the default).
+- **Kurumi**: an unofficial, non-commercial fan redraw (an adult version) of Kurumi Tokisaki from *Date A Live*. The
+  character belongs to her creators and rights holders; this project is not affiliated with them, and the art will be
+  removed on request. Switch between them in the tray menu, Character.
+
 ## Download and install (Windows, 64-bit)
 
 1. Get the latest zip from the **Releases** page of this repository and unzip it.
@@ -27,8 +34,9 @@ More detail is in the sections below.
 
 ## License
 
-The code is MIT (see `LICENSE`). The Sonnet character artwork is not covered by it: all rights reserved, included so the
-app runs out of the box. Third-party pieces: Electron (MIT), sharp (Apache-2.0) and koffi (MIT).
+The code is MIT (see `LICENSE`). The character artwork is not covered by it: Sonnet is all rights reserved, included so the
+app runs out of the box, and Kurumi is fan art as described above. Third-party pieces: Electron (MIT), sharp (Apache-2.0)
+and koffi (MIT).
 
 ---
 

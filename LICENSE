@@ -20,6 +20,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-The character artwork in characters/sonnet is NOT covered by this license: it
-is (c) 2026 k00msh0tr-arch, all rights reserved, included so the app runs out of
-the box. Characters you add yourself are your own.
+The character artwork is NOT covered by this license:
+- characters/sonnet is (c) 2026 k00msh0tr-arch, all rights reserved, included so
+  the app runs out of the box.
+- characters/kurumi is an unofficial, non-commercial fan redraw (an adult
+  version) of Kurumi Tokisaki from the series "Date A Live". The character and
+  her design belong to their creators and rights holders; this project is not
+  affiliated with them, and the art will be removed on request.
+Characters you add yourself are your own.

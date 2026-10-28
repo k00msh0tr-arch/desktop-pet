@@ -2,8 +2,7 @@
 node_modules/
 dist/
 
-# characters that are not part of the public project
-characters/kurumi/
+# scrap folder
 characters/_wip/
 
 # old versions of source art

@@ -1,0 +1,41 @@
+{
+  "name": "kurumi",
+  "title": "kurumi",
+  "height": 340,
+  "fps": 6,
+  "auto": true,
+  "frames": {
+    "idle": "idle.png",
+    "blink": "blink.png",
+    "thinking": "thinking.png",
+    "working": "working.png",
+    "waiting": "waiting.png",
+    "happy": "happy.png",
+    "thanks": "thanks.png",
+    "oops": "oops.png",
+    "sleeping": "sleeping.png",
+    "held": "held.png",
+    "fall": "fall.png",
+    "jump": "jump.png",
+    "sit": "sit.png",
+    "walk": "walk.png",
+    "climb": "climb.png"
+  },
+  "motion": {
+    "walk": {
+      "facing": "left"
+    },
+    "climb": {
+      "facing": "left"
+    },
+    "jump": {
+      "facing": "left"
+    },
+    "happy": {
+      "hop": true
+    },
+    "sit": {
+      "seat": 0.5717
+    }
+  }
+}
