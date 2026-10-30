@@ -16,6 +16,7 @@ characters/*/_contact-*.png
 
 # private working notes
 GEMINI-PROMPTS.md
+handoff/
 
 # logs and editor/OS files
 *.log
