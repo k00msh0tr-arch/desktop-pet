@@ -9,20 +9,20 @@ const { startServer, PORT } = require('./server');
 const windowsApi = require('./windows');
 const hooks = require('../tools/hooks');
 const art = require('../tools/art-source');
+const library = require('./library');
 
 if (process.env.PET_USER_DATA) app.setPath('userData', process.env.PET_USER_DATA); // for tests
-// <project>/characters, or app\characters in an installed copy. A folder of images dropped in becomes a character
-// (see importCharacters).
-const CHARS = path.join(__dirname, '..', 'characters');
+// What ships with the app: the base girl (<project>/characters, or app\characters in an installed copy; read-only in the
+// Nix build). Community girls you download and the ones you make live in CHARS, which is always writable. A folder of
+// images dropped into CHARS also becomes a character (see importCharacters).
+const BUNDLED = path.join(__dirname, '..', 'characters');
+const CHARS = path.join(app.getPath('userData'), 'characters');
 const SIZES = [['Small', 260], ['Medium', 340], ['Large', 440]];
 const PREVIEW_STATES = ['idle', 'thinking', 'working', 'waiting', 'happy', 'thanks', 'oops', 'sleeping'];
 const PREVIEW_POSES = ['held', 'fall', 'walk', 'climb', 'jump', 'sit'];
 // poses she can borrow from another when the character has no art of its own for them yet
 const FALLBACK = { blink: 'idle', working: 'thinking', thanks: 'happy', sleeping: 'idle', held: 'oops', fall: 'waiting', climb: 'waiting', walk: 'idle', jump: 'waiting' };
 
-// The Nix build has no sharp and a read-only characters folder, whose file times Nix also resets, so every
-// character would look out of date: it ships the built-in characters only.
-const CAN_IMPORT = !process.env.PET_NO_IMPORT;
 // Linux has no { forward: true } for a click-through window, and under XWayland the cursor can't be read while she is
 // click-through, so there the window is cut to a box round her instead (see syncShape in the renderer).
 // PET_SHAPE=1 tries the same on another system.
@@ -59,13 +59,15 @@ function saveConfig() {
   }
 }
 
-// every finished character, name -> folder
+// every finished character, id -> folder (the library refuses a girl whose id is a bundled one, so the order never matters)
 function characterDirs() {
   const out = new Map();
-  if (!fs.existsSync(CHARS)) return out;
-  for (const d of fs.readdirSync(CHARS, { withFileTypes: true })) {
-    const dir = path.join(CHARS, d.name);
-    if (d.isDirectory() && fs.existsSync(path.join(dir, 'manifest.json')) && fs.existsSync(path.join(dir, 'frames'))) out.set(d.name, dir);
+  for (const root of [BUNDLED, CHARS]) {
+    if (!fs.existsSync(root)) continue;
+    for (const d of fs.readdirSync(root, { withFileTypes: true })) {
+      const dir = path.join(root, d.name);
+      if (d.isDirectory() && !d.name.startsWith('.') && fs.existsSync(path.join(dir, 'manifest.json')) && fs.existsSync(path.join(dir, 'frames'))) out.set(d.name, dir);
+    }
   }
   return out;
 }
@@ -306,8 +308,8 @@ const CHARS_README = `Add a character
      idle  (required)  blink  thinking  working  waiting  happy  thanks  oops  sleeping
      held  fall  jump  sit  walk  walk2  climb  climb2
    Every image needs the same flat green background. Only idle is required; missing poses borrow from others.
-3. That's it. She is built automatically in a few seconds and offered in the tray menu: Character.
-   (Tray menu > Character > Reload characters if you want to force it.)
+3. That's it. She is built automatically in a few seconds and shows up under "Mine" in the Characters window
+   (tray menu > Characters...). That window's "New girl" button does all of this for you.
 
 Art for walk, climb and jump should face left.
 Optional: art.json next to the pictures, for example {"scales": {"sit": 0.9}}, resizes a pose.
@@ -324,9 +326,32 @@ const runArt = (dir) => new Promise((resolve) => {
   child.on('exit', (code) => done(code === 0));
 });
 
+// "New girl" in the Characters window: her pictures are copied to <CHARS>/<name>/raw, the art tool builds her frames and
+// her manifest gets her author. files: { pose: path of a picture }. Resolves { ok, log }; a failed build leaves nothing.
+const building = new Set(); // folders being built here, which the folder watcher must leave alone
+async function buildCharacter(name, author, files) {
+  const dir = path.join(CHARS, name);
+  building.add(name);
+  try {
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.mkdirSync(path.join(dir, 'raw'), { recursive: true });
+    for (const [pose, src] of Object.entries(files)) fs.copyFileSync(src, path.join(dir, 'raw', pose + path.extname(src).toLowerCase()));
+    const r = await runArt(dir);
+    if (r.ok) {
+      const file = path.join(dir, 'manifest.json');
+      fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, 'utf8')), title: name, ...(author ? { author } : {}) }, null, 2));
+    } else {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    return r;
+  } finally {
+    building.delete(name);
+  }
+}
+
 let importing = false;
 let importAgain = false; // something was dropped in while an import was running
-async function importCharacters(manual = false) {
+async function importCharacters() {
   if (importing) { importAgain = true; return; }
   importing = true;
   const added = [], failed = new Set();
@@ -336,7 +361,7 @@ async function importCharacters(manual = false) {
       importAgain = false;
       for (const d of fs.readdirSync(CHARS, { withFileTypes: true })) {
         const dir = path.join(CHARS, d.name);
-        if (!d.isDirectory() || failed.has(d.name) || !art.needsImport(dir)) continue;
+        if (!d.isDirectory() || d.name.startsWith('.') || building.has(d.name) || failed.has(d.name) || !art.needsImport(dir)) continue;
         const r = await runArt(dir);
         if (r.ok) { if (!added.includes(d.name)) added.push(d.name); }
         else {
@@ -353,8 +378,6 @@ async function importCharacters(manual = false) {
     // "Later" is the default: this pops up on its own, so a stray Enter should not change anything
     const r = await dialog.showMessageBox({ type: 'info', title: 'Claude Pet', message: `Added ${added.join(', ')}.`, detail: `Switch to ${added[0]} now?`, buttons: [`Switch to ${added[0]}`, 'Later'], defaultId: 1, cancelId: 1 });
     if (r.response === 0) switchCharacter(added[0]);
-  } else if (manual) {
-    dialog.showMessageBox({ type: 'info', title: 'Claude Pet', message: 'No new characters.', detail: `Put a folder of images (named idle, blink, ...) in:\n${CHARS}` });
   }
 }
 
@@ -430,17 +453,8 @@ function buildMenu() {
     { label: 'Wander around', type: 'checkbox', checked: config.wander, click: (i) => { config.wander = i.checked; saveConfig(); send('settings', { wander: config.wander }); } },
     { label: 'Climb on open windows', type: 'checkbox', checked: config.windows, click: (i) => { config.windows = i.checked; saveConfig(); pushWindows(true); } },
     { label: 'Size', submenu: SIZES.map(([label, h]) => ({ label, type: 'radio', checked: currentH === h, click: () => { config.height = h; applyLayout(); } })) },
-    {
-      label: 'Character',
-      submenu: [
-        ...chars.map((id) => ({ label: id, type: 'radio', checked: id === character.id, click: () => switchCharacter(id) })),
-        ...(CAN_IMPORT ? [
-          { type: 'separator' },
-          { label: 'Add a character (open the folder)…', click: openCharsFolder },
-          { label: 'Reload characters', click: () => importCharacters(true) },
-        ] : []),
-      ],
-    },
+    { label: 'Characters…', click: library.open },
+    { label: 'Switch character', submenu: chars.map((id) => ({ label: id, type: 'radio', checked: id === character.id, click: () => switchCharacter(id) })) },
     { label: 'Always on top', type: 'checkbox', checked: config.onTop, click: (i) => { config.onTop = i.checked; win.setAlwaysOnTop(i.checked, 'floating'); saveConfig(); } },
     {
       label: 'Preview',
@@ -462,6 +476,7 @@ function buildMenu() {
 
 function refreshTray() {
   if (tray) tray.setContextMenu(buildMenu());
+  library.changed();
 }
 
 function createTray() {
@@ -608,6 +623,8 @@ if (gotLock) app.whenReady().then(() => {
   character = loadCharacter(id);
   pet = new Pet();
   pet.on('change', (s) => win && win.webContents.send('state', s));
+  library.init({ bundled: BUNDLED, userChars: CHARS, characterDirs, current: () => character.id, switchTo: switchCharacter, build: buildCharacter, refreshed: refreshTray });
+  app.on('second-instance', library.open); // starting the app again opens its window
   wireIpc();
   createWindow();
   createTray();
@@ -618,10 +635,9 @@ if (gotLock) app.whenReady().then(() => {
     },
   });
   startWatcher();
-  if (CAN_IMPORT) {
-    watchCharacters();
-    importCharacters(); // pick up anything dropped in while she was not running
-  }
+  watchCharacters();
+  importCharacters(); // pick up anything dropped in while she was not running
+  if (!config.seenLibrary) { config.seenLibrary = true; saveConfig(); library.open(); } // the first time, show who is here
   const refit = () => {
     const d = screen.getAllDisplays().find((x) => x.id === overlay.id) || screen.getPrimaryDisplay();
     fitOverlay(d);

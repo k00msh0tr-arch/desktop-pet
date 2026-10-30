@@ -5,15 +5,22 @@ types while it works, waves when it needs you, celebrates when it finishes, and 
 the edges of your windows, jumps between them, sits on a window's edge, and falls if you drop her. Windows 10 and 11,
 and NixOS (see below; fewer tricks there).
 
-Claude Code's HTTP hooks POST each event to a tiny server on `127.0.0.1:47821`. Nothing leaves your computer and no
-API key is involved. This is an unofficial fan project, not affiliated with or endorsed by Anthropic.
+Claude Code's HTTP hooks POST each event to a tiny server on `127.0.0.1:47821`. Nothing about your Claude Code sessions
+leaves your computer and no API key is involved. (The Characters window fetches the community catalog from this
+repository on GitHub when you open it; that is the only network use.) This is an unofficial fan project, not affiliated
+with or endorsed by Anthropic.
 
 ## Characters
 
-- **Sonnet**: an original character (the default).
-- **Kurumi**: an unofficial, non-commercial fan redraw (an adult version) of Kurumi Tokisaki from *Date A Live*. The
-  character belongs to her creators and rights holders; this project is not affiliated with them, and the art will be
-  removed on request. Switch between them in the tray menu, Character.
+Tray menu, **Characters…** (or just start the app a second time) opens the Characters window:
+
+- **Base**: Sonnet, an original character who ships with the app (the default).
+- **Community**: girls other people made, downloaded from the online catalog (the `catalog/` folder of this repository).
+  **Kurumi** is the first: an unofficial, non-commercial fan redraw (an adult version) of Kurumi Tokisaki from *Date A
+  Live*. The character belongs to her creators and rights holders; this project is not affiliated with them, and the art
+  will be removed on request.
+- **Mine**: girls you made with **New girl**, or imported from a pack file. **Export** saves a girl as a `.zip` you can
+  send to a friend (they use **Import pack…**); **Share** exports her and opens a GitHub form to offer her to everyone.
 
 ## Download and install (Windows, 64-bit)
 
@@ -43,16 +50,17 @@ or add `claude-pet.packages.${system}.default` to `environment.systemPackages` /
   your other apps, quit her from the tray (or Ctrl+C) and report it. `PET_SHAPE=1 npm start` tries the same elsewhere.
 - She climbs and stands on open X11 windows (`src/x11windows.c`, built by the flake). On a Wayland session that means
   only the XWayland ones: native Wayland windows are invisible to her, and Wayland has no way to list them.
-- Not there yet: characters dropped into a folder (needs sharp, and the Nix store is read-only). It has the two
-  built-in characters.
+- New girls are built with sharp, which the flake unpacks from the hashes in `package-lock.json` and patches to run on
+  NixOS (`nix/sharp-deps.nix`, written by `node tools/nix-sharp.js`). Your girls live in `~/.config/claude-pet/characters`.
 - Flakes only see files git tracks: `git add` new files before building, and commit `flake.lock` (`nix flake lock`).
 
 ## Make your own character
 
-Tray menu, Character, "Add a character (open the folder)". Make a folder named after her, drop in pictures named after
-the poses (`idle` is required; `blink thinking working waiting happy thanks oops sleeping held fall jump sit walk
-walk2 climb climb2` are optional; png, webp or jpg) on a flat green background, and she is built automatically.
-More detail is in the sections below.
+Characters window, **New girl**: drop her pictures in (name each file after its pose, like `idle.png` and `walk.png`, and
+they place themselves; `idle` is required, `blink thinking working waiting happy thanks oops sleeping held fall jump sit
+walk walk2 climb climb2` are optional; png, webp or jpg), type her name, press **Make her**. All pictures need the same
+flat green background (or a transparent one), and she should be the same size and in the same spot in each. Walk, climb
+and jump should face left. She is built in under a minute and put on your screen. More detail is in the sections below.
 
 ## License
 
@@ -138,13 +146,15 @@ curl -X POST http://127.0.0.1:47821/debug -d "{\"state\":\"happy\",\"confetti\":
 
 ## Adding a character by dropping in pictures
 
-Tray menu > Character > "Add a character (open the folder)" opens the `characters/` folder (in an installed copy,
-`app\characters` inside the install folder; reinstalling keeps what you added and uninstalling offers a backup).
-Make a folder named after her, drop in images named like the poses in the table above (png, webp or jpg; only `idle` is
-required; they can sit directly in the folder or in a `raw` subfolder) and she is built automatically within seconds:
-the app watches the folder and runs `tools/process-art.js` in a separate process, which keys out the green, lines the
-standing frames up, writes `frames/`, `_contact-*.png` and (unless you wrote your own) a `manifest.json` marked `"auto"`,
-then offers her in the menu. `import-log.txt` in her folder says what happened. An `art.json` next to the images
+The Characters window's **New girl** does this for you; this is what happens under it. Only Sonnet ships in `characters/`
+(a folder with `"base": true` in its manifest is a base girl). Downloaded and made girls live in the user folder
+(`%APPDATA%\claude-pet\characters` on Windows, `~/.config/claude-pet/characters` on Linux; the Characters window's
+footer opens it), which an update or reinstall never touches.
+Make a folder there named after her, drop in images named like the poses in the table above (png, webp or jpg; only
+`idle` is required; they can sit directly in the folder or in a `raw` subfolder) and she is built automatically within
+seconds: the app watches the folder and runs `tools/process-art.js` in a separate process, which keys out the green,
+lines the standing frames up, writes `frames/`, `_contact-*.png` and (unless you wrote your own) a `manifest.json` marked
+`"auto"`, then offers her under Mine. `import-log.txt` in her folder says what happened. An `art.json` next to the images
 (`{"scales": {"sit": 0.9}}`) resizes a pose. `npm run art -- <name or path>` runs the same tool by hand.
 A standing pose whose legs are nothing like idle's (a jump for joy as `happy`) is spotted automatically: it is grounded
 like `sit` and `jump`, and the manifest marks it `"hop": true`, so she bounces while it is shown.
@@ -159,6 +169,24 @@ the sit image her seat is, 0 to 1) makes her sit with her seat on the top edge o
 only ever on window tops. Characters the tool built are sized so their idle body is as tall as Sonnet's at the same
 size setting, however much headroom their frame has.
 
+## The community catalog
+
+The Community tab reads `catalog/index.json` from this repository's `main` branch (`src/catalog.js`; `PET_CATALOG=<url>`
+points the app at another catalog, for testing). Each girl is a pack: a `.zip` with `manifest.json`, an optional
+`art.json` and `frames/<pose>.png`, plus a preview picture. Nothing from the network is trusted: the index lists each
+pack's sha256 and the app refuses a download that differs, only those file names are read, every frame must be a real
+PNG, sizes are capped and nothing can be written outside her own folder (`src/charpack.js`, `src/zip.js`, tested).
+
+To add a girl someone offered (the **Share** button opens a GitHub issue where they attach the `.zip`), check the art and
+its rights, then:
+
+```
+npm run catalog -- add path\to\mia.zip --author "their name" --description "one line"
+```
+
+That validates the pack, writes `catalog/packs/mia.zip`, makes the preview and rebuilds `catalog/index.json`; commit and
+push and she is live. `npm run catalog -- remove mia` takes her out; `npm run catalog -- build` rebuilds the index.
+
 ## Moving her to another PC
 
 `npm run pack` builds `dist/Claude-Pet.zip` (about 160 MB): her code and frames, the Electron runtime, an installer
@@ -170,4 +198,5 @@ install and uninstalling against a fake user profile; not yet run on a second re
 
 ## Tests
 
-`npm test` runs the physics tests (landing, windows, riding, throwing, twenty simulated minutes of roaming).
+`npm test` runs the physics tests (landing, windows, riding, throwing, twenty simulated minutes of roaming), the
+parser for the X11 window helper, and the character pack and zip tests (round trip, and every way a pack can be hostile).

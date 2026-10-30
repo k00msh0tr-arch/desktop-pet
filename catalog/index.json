@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "characters": [
+    {
+      "id": "kurumi",
+      "name": "Kurumi",
+      "author": "k00msh0tr-arch",
+      "description": "Unofficial, non-commercial fan redraw of Kurumi Tokisaki from Date A Live.",
+      "zip": "packs/kurumi.zip",
+      "preview": "previews/kurumi.png",
+      "sha256": "d0c95ffea42ae2be1750a64fa324b06714f1c575dfad7da5ef8f23378c0b98d7",
+      "size": 17384533
+    }
+  ]
+}

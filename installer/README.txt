@@ -36,15 +36,17 @@ after installing them. If she does not react, open  http://127.0.0.1:47821/event
 whether events arrive.
 
 
-ADD ANOTHER CHARACTER
----------------------
-Tray menu > Character > "Add a character (open the folder)". Make a folder there named after her and drop her
-pictures in, one per pose, named idle, blink, thinking, working, waiting, happy, thanks, oops, sleeping, held, fall,
-jump, sit, walk, walk2, climb, climb2 (png, webp or jpg; only idle is required). All pictures need the same flat
-green background. After a few seconds she is built automatically and offered in the Character menu.
-The folder is  app\characters  inside the install folder (%LOCALAPPDATA%\Claude Pet\app\characters, or the unzipped
-folder if you run her without installing) and it has a README.txt with the same instructions.
-Reinstalling keeps the characters you added. Uninstalling offers to copy them to your Documents folder first.
+CHARACTERS
+----------
+Tray menu > Characters... opens the Characters window (so does starting Claude Pet a second time).
+  Base       Sonnet, who comes with the app.
+  Community  girls other people made, downloaded from the online catalog (needs internet).
+  Mine       your own. "New girl": drop her pictures in (name each file after its pose: idle, blink, thinking,
+             working, waiting, happy, thanks, oops, sleeping, held, fall, jump, sit, walk, walk2, climb, climb2;
+             only idle is required), type her name, press "Make her". Pictures need the same flat green
+             background (or a transparent one). Export sends her to a friend as a .zip; Share offers her to everyone.
+Your girls live in  %APPDATA%\claude-pet\characters, outside the install folder, so reinstalling, updating or
+uninstalling never touches them.
 
 
 UNINSTALL

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'self'; script-src 'self'">
+  <title>Claude Pet: Characters</title>
+  <link rel="stylesheet" href="library.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Characters</h1>
+      <p class="sub">Pick who walks around your screen.</p>
+    </div>
+    <div class="actions">
+      <button id="import" class="ghost">Import pack…</button>
+      <button id="new" class="primary">＋ New girl</button>
+    </div>
+  </header>
+
+  <nav id="tabs">
+    <button data-tab="base">Base</button>
+    <button data-tab="community">Community</button>
+    <button data-tab="mine">Mine</button>
+  </nav>
+
+  <main>
+    <div id="note" hidden></div>
+    <div id="grid"></div>
+  </main>
+
+  <footer>
+    <span>Community girls come from the online catalog. Made one? Share it from <b>Mine</b>.</span>
+    <button id="folder" class="link">Open my characters folder</button>
+  </footer>
+
+  <div id="wizard" class="modal" hidden>
+    <div class="sheet">
+      <h2>New girl</h2>
+      <p class="sub">Drop her pictures in, name her, done. Only <b>idle</b> is needed; any pose you skip borrows from another.</p>
+
+      <div class="fields">
+        <label><span>Name</span><input id="w-name" maxlength="40" placeholder="Mia" autocomplete="off"></label>
+        <label><span>Made by <span class="muted">(optional)</span></span><input id="w-author" maxlength="60" placeholder="you" autocomplete="off"></label>
+      </div>
+
+      <div id="drop" tabindex="0">
+        <span><b>Drop all her pictures here</b>, or click to choose.</span>
+        <span class="muted">Name each file after its pose (idle.png, walk.png, …) and they place themselves.</span>
+      </div>
+
+      <div id="slots"></div>
+
+      <ul class="tips">
+        <li>Use a flat green background (like <code>#00b140</code>) or a transparent one, the same on every picture.</li>
+        <li>Keep her the same size and in the same spot in every picture. Walk, climb and jump should face left.</li>
+        <li>png, webp or jpg.</li>
+      </ul>
+
+      <pre id="w-error" hidden></pre>
+      <div class="sheet-actions">
+        <span id="w-status" class="muted"></span>
+        <button id="w-cancel" class="ghost">Cancel</button>
+        <button id="w-create" class="primary" disabled>Make her</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" hidden></div>
+  <script src="library.js"></script>
+</body>
+</html>

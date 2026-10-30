@@ -1,5 +1,6 @@
 {
   "name": "Sonnet",
+  "base": true,
   "title": "Sonnet 5.5",
   "height": 340,
   "fps": 6,
