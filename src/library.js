@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage, screen } = require('electron');
 const charpack = require('./charpack');
 const catalog = require('./catalog');
 
@@ -171,8 +171,13 @@ function open() {
     win.focus();
     return;
   }
+  // centred, but not higher than 200px from the top when there is room: she only stands on a window whose top edge is
+  // low enough for half of her to fit above it, and she should be able to stand on this one
+  const wa = screen.getPrimaryDisplay().workArea, width = 1100, height = 740;
+  const x = wa.x + Math.max(0, Math.round((wa.width - width) / 2));
+  const y = wa.y + Math.min(Math.max(Math.round((wa.height - height) / 2), 200), Math.max(0, wa.height - height));
   win = new BrowserWindow({
-    width: 1100, height: 740, minWidth: 880, minHeight: 580, title: 'Claude Pet: Characters', backgroundColor: '#08080c', autoHideMenuBar: true,
+    x, y, width, height, minWidth: 880, minHeight: 580, title: 'Claude Pet: Characters', backgroundColor: '#08080c', autoHideMenuBar: true,
     // on Windows the page draws the title bar and the system only adds its three buttons
     ...(process.platform === 'win32' ? { titleBarStyle: 'hidden', titleBarOverlay: { color: '#00000000', symbolColor: '#d8d4e6', height: 44 } } : {}),
     webPreferences: { preload: path.join(__dirname, 'library', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },

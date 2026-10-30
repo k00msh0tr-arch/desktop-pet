@@ -1,6 +1,10 @@
 'use strict';
 // The page of the Characters window. Everything shown is built with textContent, never innerHTML: names, authors and
 // descriptions in the community catalog are written by strangers.
+//
+// Smoothness: the page is not rebuilt on every change. Cards, the featured card and the details panel are kept and
+// patched in place (so pictures never reload, hover and focus survive, and a card's ring can ease in), and only
+// elements that are new animate in.
 
 const POSES = [
   ['idle', 'standing still'], ['blink', 'eyes closed'], ['thinking', 'Claude is thinking'], ['working', 'Claude is working'],
@@ -45,19 +49,36 @@ function icon(name) {
 
 const state = { tab: 'base', current: null, local: [], cat: null, loadingCat: false, busy: new Set(), query: '', open: null };
 
+// ---- showing and hiding with a fade ---------------------------------------------------
+// show() runs the element's "in" animation (the CSS plays it whenever it becomes displayed); hide() plays "out", then removes it
+const OUT_MS = 220;
+const isOpen = (n) => !n.hidden && !n.classList.contains('out');
+function show(n) { clearTimeout(n._out); n.classList.remove('out'); n.hidden = false; }
+function hide(n) {
+  if (n.hidden || n.classList.contains('out')) return;
+  n.classList.add('out');
+  n._out = setTimeout(() => { n.hidden = true; n.classList.remove('out'); }, OUT_MS);
+}
+// a new element rises in, a little after the one before it; the class goes when it is done so hover can take over
+function enter(n, i) {
+  n.style.setProperty('--i', Math.min(i, 12));
+  n.classList.add('enter');
+  n.addEventListener('animationend', () => n.classList.remove('enter'), { once: true });
+}
+
 // ---- messages -------------------------------------------------------------------
 let toastTimer = null;
 function toast(msg, isErr) {
   const t = $('#toast');
+  clearTimeout(toastTimer);
   t.textContent = msg;
   t.className = `glass${isErr ? ' err' : ''}`;
-  t.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, isErr ? 7000 : 4000);
+  show(t);
+  toastTimer = setTimeout(() => hide(t), isErr ? 7000 : 4000);
 }
 const report = (r, ok) => { if (r.ok) toast(ok); else if (!r.cancelled) toast(r.error, true); return r; };
 
-// run one action per character at a time, with its buttons disabled while it works
+// run one action per character at a time, with its buttons showing a spinner while it works
 const act = (id, fn) => async () => {
   if (state.busy.has(id)) return;
   state.busy.add(id);
@@ -97,6 +118,8 @@ function entries() {
 
 // ---- pieces -----------------------------------------------------------------------
 const isCurrent = (e) => e.local && e.id === state.current;
+const byline = (e) => (e.author ? `by ${e.author}` : e.kind === 'base' ? 'Comes with the app' : 'Made by you');
+const sigOf = (e) => `${e.id}|${e.preview ? e.preview.length : 0}|${(e.tint || []).join(',')}`; // what the picture area is made from
 
 // what the main button of a character does
 function primaryOf(e) {
@@ -115,38 +138,63 @@ function tile(e, cls) {
     img.src = e.preview;
     img.alt = '';
     img.draggable = false;
+    img.decoding = 'async';
     t.append(img);
   } else t.append(el('span', 'ph', 'No preview'));
   return t;
 }
 
-// a button for primaryOf(): big (hero, details) or small (card)
+// a button for primaryOf(): big (hero, details) or small (card); a spinner replaces its icon while it works
 function primaryButton(e, big) {
   const p = primaryOf(e);
   if (p.selected) return el('span', 'pill ok', 'Selected');
+  const busy = state.busy.has(e.id);
   const b = el('button', big ? 'btn primary' : p.icon ? 'icon-btn' : 'btn', big ? p.label : p.icon ? '' : p.label);
   if (p.icon) { b.prepend(icon(p.icon)); b.title = p.label; b.setAttribute('aria-label', p.label); }
-  b.disabled = state.busy.has(e.id);
+  if (busy) { b.classList.add('busy'); b.prepend(el('span', 'spin')); }
+  b.disabled = busy;
   b.addEventListener('click', (ev) => { ev.stopPropagation(); act(e.id, p.run)(); });
   return b;
+}
+
+const tagsOf = (e) => [
+  ...(e.update ? [el('span', 'tag update', 'Update')] : []),
+  ...(!e.local && e.size ? [el('span', 'tag', `${(e.size / 1048576).toFixed(0)} MB`)] : []),
+];
+
+function barOf(e) {
+  const meta = el('div', 'meta');
+  meta.append(el('div', 'name', e.name), el('div', 'author', byline(e)));
+  const bar = el('div', 'bar');
+  bar.append(meta, primaryButton(e, false));
+  return bar;
 }
 
 function card(e) {
   const c = el('div', `card${isCurrent(e) ? ' on' : ''}`);
   c.tabIndex = 0;
+  c.dataset.id = e.id;
+  c.dataset.sig = sigOf(e);
   const t = tile(e, '');
-  if (e.update) t.append(el('span', 'tag update', 'Update'));
-  if (!e.local && e.size) t.append(el('span', 'tag', `${(e.size / 1048576).toFixed(0)} MB`));
-  const meta = el('div', 'meta');
-  meta.append(el('div', 'name', e.name), el('div', 'author', e.author ? `by ${e.author}` : e.kind === 'base' ? 'Comes with the app' : 'Made by you'));
-  const bar = el('div', 'bar');
-  bar.append(meta, primaryButton(e, false));
-  c.append(t, bar);
+  t.append(...tagsOf(e));
+  c.append(t, barOf(e));
   c.addEventListener('click', () => openDetails(e.id));
   c.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') openDetails(e.id); });
   return c;
 }
 
+// bring a kept card up to date without touching its picture; a card that just became selected gives a pulse
+function patchCard(c, e) {
+  const on = isCurrent(e);
+  if (on && !c.classList.contains('on')) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); }
+  c.classList.toggle('on', on);
+  const t = c.querySelector('.tile');
+  t.querySelectorAll('.tag').forEach((x) => x.remove());
+  t.append(...tagsOf(e));
+  c.querySelector('.bar').replaceWith(barOf(e));
+}
+
+let addNode = null;
 function addCard() {
   const c = el('div', 'card add');
   c.tabIndex = 0;
@@ -158,8 +206,30 @@ function addCard() {
   return c;
 }
 
-function hero(e) {
-  const h = el('section', 'hero glass');
+// the grid keeps one node per character: kept nodes are patched and left where they are, new ones rise in, the rest go
+let cardNodes = new Map();
+function syncGrid(grid, list, extras) {
+  const next = new Map();
+  const nodes = [];
+  list.forEach((e, i) => {
+    let n = cardNodes.get(e.id);
+    if (n && n.dataset.sig === sigOf(e)) patchCard(n, e);
+    else { n = card(e); if (!cardNodes.has(e.id)) enter(n, i); }
+    next.set(e.id, n);
+    nodes.push(n);
+  });
+  cardNodes = next;
+  nodes.push(...extras);
+  let ref = grid.firstChild;
+  for (const n of nodes) {
+    if (n === ref) ref = ref.nextSibling; // already in place: moving it would restart its animation
+    else grid.insertBefore(n, ref);
+  }
+  while (ref) { const nx = ref.nextSibling; ref.remove(); ref = nx; }
+}
+
+let heroNode = null;
+function heroText(e) {
   const text = el('div', 'hero-text');
   text.append(el('div', 'eyebrow', isCurrent(e) ? 'Selected' : 'Featured'), el('h2', null, e.name), el('div', 'author', e.author ? `by ${e.author}` : ''));
   if (e.description) text.append(el('p', 'desc', e.description));
@@ -168,93 +238,130 @@ function hero(e) {
   more.addEventListener('click', () => openDetails(e.id));
   row.append(primaryButton(e, true), more);
   text.append(row);
-  h.append(tile(e, 'hero-tile'), text);
-  return h;
+  return text;
 }
 
-function note(text, button) {
+function syncHero(slot, e) {
+  if (!e) { if (heroNode) { heroNode.remove(); heroNode = null; } return; }
+  if (heroNode && heroNode.dataset.sig === sigOf(e)) { heroNode.querySelector('.hero-text').replaceWith(heroText(e)); return; }
+  const h = el('section', 'hero glass');
+  h.dataset.sig = sigOf(e);
+  h.append(tile(e, 'hero-tile'), heroText(e));
+  enter(h, 0);
+  slot.replaceChildren(h);
+  heroNode = h;
+}
+
+function setNote(text, button) {
   const n = $('#note');
+  if (!text) { hide(n); return; }
   n.replaceChildren(el('span', null, text));
   if (button) { const b = el('button', 'btn', button[0]); b.addEventListener('click', button[1]); n.append(b); }
-  n.hidden = false;
+  show(n);
 }
 
 // ---- the page ---------------------------------------------------------------------
+// the nav is built once; a highlight slides to the active item
+const navBtns = {};
+function renderNav(all) {
+  const nav = $('#tabs');
+  if (!nav.children.length) {
+    nav.append(el('div', 'nav-ind'));
+    for (const [kind, label, ico] of TABS) {
+      const b = el('button', 'nav');
+      const count = el('span', 'count');
+      b.append(icon(ico), el('span', null, label), count);
+      b.addEventListener('click', () => switchTab(kind));
+      nav.append(b);
+      navBtns[kind] = { b, count };
+    }
+  }
+  for (const [kind] of TABS) {
+    navBtns[kind].b.classList.toggle('on', state.tab === kind);
+    navBtns[kind].count.textContent = String(all.filter((e) => e.kind === kind).length);
+  }
+  nav.firstChild.style.transform = `translateY(${navBtns[state.tab].b.offsetTop}px)`;
+  if (!nav.classList.contains('ready')) requestAnimationFrame(() => requestAnimationFrame(() => nav.classList.add('ready'))); // no slide on load
+}
+
+function switchTab(kind) {
+  if (state.tab === kind) return;
+  state.tab = kind;
+  $('#scroll').scrollTo({ top: 0, behavior: 'smooth' });
+  if (kind === 'community' && (!state.cat || !state.cat.ok) && !state.loadingCat) loadCatalog();
+  render();
+}
+
 function render() {
   const all = entries();
-  const nav = $('#tabs');
-  nav.replaceChildren();
-  for (const [kind, label, ico] of TABS) {
-    const b = el('button', `nav${state.tab === kind ? ' on' : ''}`);
-    b.append(icon(ico), el('span', null, label), el('span', 'count', String(all.filter((e) => e.kind === kind).length)));
-    b.addEventListener('click', () => {
-      state.tab = kind;
-      if (kind === 'community' && (!state.cat || !state.cat.ok) && !state.loadingCat) loadCatalog();
-      render();
-    });
-    nav.append(b);
-  }
+  renderNav(all);
 
   const q = state.query.trim().toLowerCase();
   const list = all.filter((e) => e.kind === state.tab && (!q || `${e.name} ${e.author}`.toLowerCase().includes(q)));
-  const heroSlot = $('#hero'), grid = $('#grid');
-  heroSlot.replaceChildren();
-  grid.replaceChildren();
-  $('#note').hidden = true;
 
-  if (state.tab === 'community') {
-    if (state.loadingCat) note('Looking for community characters…');
-    else if (state.cat && !state.cat.ok) note(`Could not reach the online catalog (${state.cat.error}). Showing what you have downloaded.`, ['Try again', loadCatalog]);
-  }
+  if (state.tab === 'community' && state.loadingCat) setNote('Looking for community characters…');
+  else if (state.tab === 'community' && state.cat && !state.cat.ok) setNote(`Could not reach the online catalog (${state.cat.error}). Showing what you have downloaded.`, ['Try again', loadCatalog]);
+  else setNote(null);
 
-  if (!q && list.length) heroSlot.append(hero(list[0]));
+  syncHero($('#hero'), !q && list.length ? list[0] : null);
   const showGrid = q || state.tab === 'mine' || list.length > 1;
   $('#grid-title').textContent = showGrid ? TITLES[state.tab] : '';
-  if (showGrid) for (const e of list) grid.append(card(e));
-  if (state.tab === 'mine' && !q) grid.append(addCard());
-  if (q && !list.length) grid.append(el('div', 'empty', `Nothing matches "${state.query.trim()}".`));
-  if (!q && !list.length && state.tab === 'community' && !state.loadingCat) grid.append(el('div', 'empty', 'Nobody has shared a character yet.'));
+
+  const extras = [];
+  if (state.tab === 'mine' && !q) {
+    if (!addNode) addNode = addCard();
+    if (!addNode.isConnected) enter(addNode, list.length);
+    extras.push(addNode);
+  }
+  if (q && !list.length) extras.push(el('div', 'empty', `Nothing matches "${state.query.trim()}".`));
+  if (!q && !list.length && state.tab === 'community' && !state.loadingCat) extras.push(el('div', 'empty', 'Nobody has shared a character yet.'));
+  syncGrid($('#grid'), showGrid ? list : [], extras);
 
   renderDetails();
 }
 
 // ---- details ----------------------------------------------------------------------
+// the top of the panel is rebuilt only when the character itself changes; the buttons follow every change
+const dClose = el('button', 'icon-btn close');
+dClose.append(icon('close'));
+dClose.title = 'Close';
+dClose.setAttribute('aria-label', 'Close');
+dClose.addEventListener('click', () => closeDetails());
+const dCore = el('div');
+const dActions = el('div', 'd-actions');
+$('#details').append(dClose, dCore, dActions);
+let dSig = null;
+
 function openDetails(id) { state.open = id; renderDetails(); }
 function closeDetails() { state.open = null; renderDetails(); }
 
 function renderDetails() {
   const wrap = $('#details-wrap');
   const e = state.open && entries().find((x) => x.id === state.open);
-  if (!e) { state.open = null; wrap.hidden = true; return; }
-  const d = $('#details');
-  const keep = d.scrollTop;
-  d.replaceChildren();
-  const close = el('button', 'icon-btn close');
-  close.append(icon('close'));
-  close.title = 'Close';
-  close.setAttribute('aria-label', 'Close');
-  close.addEventListener('click', closeDetails);
+  if (!e) { state.open = null; dSig = null; hide(wrap); return; }
+  show(wrap);
 
-  const chips = el('div', 'chips');
-  chips.append(el('span', 'chip', KIND[e.kind]));
-  if (e.poses) chips.append(el('span', 'chip', `${e.poses} of ${POSES.length} poses`));
-  if (!e.local && e.size) chips.append(el('span', 'chip', `${(e.size / 1048576).toFixed(0)} MB`));
-  d.append(close, tile(e, 'd-tile'), el('h2', null, e.name), el('div', 'author', e.author ? `by ${e.author}` : e.kind === 'base' ? 'Comes with the app' : 'Made by you'), chips);
-  if (e.description) d.append(el('p', 'desc', e.description));
+  const sig = [sigOf(e), e.name, e.author, e.description, e.kind, e.poses, e.size].join('|');
+  if (sig !== dSig) {
+    dSig = sig;
+    const chips = el('div', 'chips');
+    chips.append(el('span', 'chip', KIND[e.kind]));
+    if (e.poses) chips.append(el('span', 'chip', `${e.poses} of ${POSES.length} poses`));
+    if (!e.local && e.size) chips.append(el('span', 'chip', `${(e.size / 1048576).toFixed(0)} MB`));
+    dCore.replaceChildren(tile(e, 'd-tile'), el('h2', null, e.name), el('div', 'author', byline(e)), chips);
+    if (e.description) dCore.append(el('p', 'desc', e.description));
+  }
 
-  const row = el('div', 'd-actions');
-  row.append(primaryButton(e, true));
   const busy = state.busy.has(e.id);
-  const extra = (label, cls, fn) => { const b = el('button', `btn ${cls}`, label); b.disabled = busy; b.addEventListener('click', act(e.id, fn)); row.append(b); };
+  const row = [primaryButton(e, true)];
+  const extra = (label, cls, fn) => { const b = el('button', `btn ${cls}`, label); b.disabled = busy; b.addEventListener('click', act(e.id, fn)); row.push(b); };
   if (e.update) extra('Update', '', async () => { report(await lib.install(e.id), `${e.name} is up to date.`); await refresh(); });
   if (e.kind === 'mine') {
     extra('Export', '', async () => { report(await lib.exportPack(e.id, false), 'Saved. Send the .zip to a friend; they use Import pack.'); });
     extra('Share', '', async () => { report(await lib.exportPack(e.id, true), 'Saved. Drag the .zip into the GitHub page that just opened to offer her to the community.'); });
   }
   if (e.local && e.kind !== 'base') extra('Remove', 'danger', async () => { const r = await lib.remove(e.id); if (!r.ok && !r.cancelled) toast(r.error, true); await refresh(); });
-  d.append(row);
-  wrap.hidden = false;
-  d.scrollTop = keep;
+  dActions.replaceChildren(...row);
 }
 
 // ---- new character ----------------------------------------------------------------
@@ -300,25 +407,37 @@ function over(node, onDrop) {
   node.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); node.classList.remove('over'); onDrop([...e.dataTransfer.files]); });
 }
 
-function renderSlots() {
+// the slots are built once; a slot gets or loses its picture in place
+const slotNodes = {};
+function buildSlots() {
   const slots = $('#slots');
-  slots.replaceChildren();
   for (const [pose, hint] of POSES) {
-    const s = el('div', `slot${pose === 'idle' ? ' req' : ''}${wiz.files[pose] ? ' filled' : ''}`);
+    const s = el('div', `slot${pose === 'idle' ? ' req' : ''}`);
     s.title = hint;
-    if (wiz.files[pose]) {
-      const img = el('img');
-      img.src = wiz.urls[pose];
-      img.alt = pose;
-      const x = el('button', 'x', '✕');
-      x.title = 'Remove this picture';
-      x.addEventListener('click', (e) => { e.stopPropagation(); URL.revokeObjectURL(wiz.urls[pose]); delete wiz.files[pose]; delete wiz.urls[pose]; renderSlots(); });
-      s.append(img, x);
-    } else s.append(el('span', 'plus', '+'));
-    s.append(el('span', 'label', pose));
+    const plus = el('span', 'plus', '+');
+    const x = el('button', 'x', '✕');
+    x.title = 'Remove this picture';
+    x.addEventListener('click', (e) => { e.stopPropagation(); URL.revokeObjectURL(wiz.urls[pose]); delete wiz.files[pose]; delete wiz.urls[pose]; renderSlots(); });
+    s.append(plus, el('span', 'label', pose), x);
     s.addEventListener('click', () => pick(false, ([f]) => setFile(pose, f)));
     over(s, ([f]) => { if (f) setFile(pose, f); });
     slots.append(s);
+    slotNodes[pose] = { s, plus, x, img: null };
+  }
+}
+
+function renderSlots() {
+  for (const [pose] of POSES) {
+    const n = slotNodes[pose];
+    const file = wiz.files[pose];
+    n.s.classList.toggle('filled', !!file);
+    if (file && (!n.img || n.img.src !== wiz.urls[pose])) {
+      if (n.img) n.img.remove();
+      n.img = el('img');
+      n.img.src = wiz.urls[pose];
+      n.img.alt = pose;
+      n.s.prepend(n.img);
+    } else if (!file && n.img) { n.img.remove(); n.img = null; }
   }
   $('#w-create').disabled = !($('#w-name').value.trim() && wiz.files.idle);
 }
@@ -332,7 +451,7 @@ function openWizard() {
   $('#w-error').hidden = true;
   $('#w-status').textContent = '';
   renderSlots();
-  $('#wizard').hidden = false;
+  show($('#wizard'));
   $('#w-name').focus();
 }
 
@@ -345,6 +464,8 @@ async function create() {
   }
   const buttons = ['#w-create', '#w-cancel'].map($);
   buttons.forEach((b) => { b.disabled = true; });
+  $('#w-create').classList.add('busy');
+  $('#w-create').prepend(el('span', 'spin'));
   $('#w-error').hidden = true;
   $('#w-status').textContent = 'Building the frames… this takes up to a minute.';
   try {
@@ -352,13 +473,15 @@ async function create() {
     if (r.exists && confirm(`${name} is already in your library. Replace her?`)) r = await lib.create({ name, author, files, overwrite: true });
     if (r.exists) return;
     if (!r.ok) { $('#w-error').textContent = r.error; $('#w-error').hidden = false; return; }
-    $('#wizard').hidden = true;
+    hide($('#wizard'));
     await lib.equip(r.id);
     state.tab = 'mine';
     await refresh();
     toast(`${name} is ready and on your screen.`);
   } finally {
     $('#w-status').textContent = '';
+    $('#w-create').classList.remove('busy');
+    $('#w-create').querySelector('.spin')?.remove();
     buttons.forEach((b) => { b.disabled = false; });
     renderSlots();
   }
@@ -370,12 +493,13 @@ $('#search-icon').append(icon('search'));
 $('#new').append(icon('plus'), el('span', null, 'Add'));
 $('#import').append(icon('upload'), el('span', null, 'Import pack…'));
 $('#folder').append(icon('folder'), el('span', null, 'Open my folder'));
+buildSlots();
 
 $('#new').addEventListener('click', openWizard);
 $('#import').addEventListener('click', async () => { const r = report(await lib.importPack(), 'Imported. She is in your library.'); if (r.ok) state.tab = 'mine'; await refresh(); });
 $('#folder').addEventListener('click', () => lib.openFolder());
 $('#search').addEventListener('input', (e) => { state.query = e.target.value; render(); });
-$('#w-cancel').addEventListener('click', () => { $('#wizard').hidden = true; });
+$('#w-cancel').addEventListener('click', () => hide($('#wizard')));
 $('#w-create').addEventListener('click', create);
 $('#w-name').addEventListener('input', renderSlots);
 $('#drop').addEventListener('click', () => pick(true, addMany));
@@ -386,7 +510,7 @@ $('#details-wrap').addEventListener('click', (e) => { if (e.target.id === 'detai
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#search').focus(); $('#search').select(); return; }
   if (e.key !== 'Escape') return;
-  if (!$('#wizard').hidden) { if (!$('#w-cancel').disabled) $('#wizard').hidden = true; } else if (state.open) closeDetails();
+  if (isOpen($('#wizard'))) { if (!$('#w-cancel').disabled) hide($('#wizard')); } else if (state.open) closeDetails();
   else if (document.activeElement === $('#search') && state.query) { $('#search').value = ''; state.query = ''; render(); }
 });
 // a picture dropped anywhere else must not make the window open it

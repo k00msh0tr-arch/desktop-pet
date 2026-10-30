@@ -109,6 +109,8 @@ If something doesn't react, `GET http://127.0.0.1:47821/events` lists the last h
   sides of windows, leaps from the floor up onto a window (with a short run-up), and at the top of a climb prefers to
   jump to a window rather than let go. If you move, resize, minimise or close a window she is climbing, she falls off.
   Any Claude activity stops her where she is (if she is climbing she lets go and falls).
+- The app's own Characters window is a window like any other to her: she climbs its sides and, when its top edge is low
+  enough on the screen (the window opens a little below the middle for that), stands on it. Only her own overlay is skipped.
 - She hides while something is fullscreen. Maximised windows count as the screen, not as something to stand on.
 - `GET http://127.0.0.1:47821/actor` shows what she is doing and which windows she can see.
 

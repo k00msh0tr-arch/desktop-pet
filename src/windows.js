@@ -44,8 +44,9 @@ function load() {
   return api;
 }
 
-// One snapshot: [{ id, x, y, w, h, fg }] with front-most first.
-function snapshot() {
+// One snapshot: [{ id, x, y, w, h, fg }] with front-most first. own: the handle (as text) of her overlay, the one window
+// she must not stand on. The app's other windows (the Characters window) are windows like any other to her.
+function snapshot(own) {
   const w32 = load();
   if (!w32) return [];
   const fgHwnd = w32.GetForegroundWindow();
@@ -60,10 +61,8 @@ function snapshot() {
       if (w32.GetWindowTextLengthW(hwnd) === 0) return true;
       const cloaked = [0];
       if (w32.DwmCloaked(hwnd, 14, cloaked, 4) === 0 && cloaked[0]) return true;
-      const pid = [0];
-      w32.GetWindowThreadProcessId(hwnd, pid);
-      if (pid[0] === process.pid) return true; // her own overlay
-      const n = w32.GetClassNameW(hwnd, classBuf, 256);
+      if (String(hwnd) === own) return true;
+      const n =w32.GetClassNameW(hwnd, classBuf, 256);
       if (SKIP_CLASSES.has(classBuf.toString('utf16le', 0, n * 2))) return true;
 
       const r = {};
@@ -90,10 +89,10 @@ const parseX11 = (line) => line.split(';').filter(Boolean).map((s) => {
   return { id, x: +x, y: +y, w: +w, h: +h, fg: fg === '1' };
 });
 
-function watchX11(intervalMs, onSnapshot) {
+function watchX11(intervalMs, onSnapshot, own) {
   const helper = process.env.PET_X11_HELPER;
   if (!helper) return { stop() {} };
-  const child = spawn(helper, [String(process.pid), String(intervalMs)], { stdio: ['ignore', 'pipe', 'inherit'] });
+  const child = spawn(helper, [own, String(intervalMs)], { stdio: ['ignore', 'pipe', 'inherit'] });
   let buf = '';
   child.stdout.setEncoding('utf8').on('data', (chunk) => {
     const lines = (buf + chunk).split('\n');
@@ -106,11 +105,11 @@ function watchX11(intervalMs, onSnapshot) {
   return { stop: () => child.kill() };
 }
 
-function watch(intervalMs, onSnapshot) {
-  if (process.platform === 'linux') return watchX11(intervalMs, onSnapshot);
+function watch(intervalMs, onSnapshot, own) {
+  if (process.platform === 'linux') return watchX11(intervalMs, onSnapshot, own);
   if (!load()) return { stop() {} };
   const timer = setInterval(() => {
-    try { onSnapshot(snapshot()); } catch (err) { console.error('[pet] window poll failed:', err.message); }
+    try { onSnapshot(snapshot(own)); } catch (err) { console.error('[pet] window poll failed:', err.message); }
   }, intervalMs);
   return { stop: () => clearInterval(timer) };
 }

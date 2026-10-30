@@ -1,7 +1,7 @@
 // Reads the position of the visible top-level windows on X11 so the pet can stand on them and climb them: the Linux
 // counterpart of src/windows.js. It only reads geometry: no titles, no content.
 //   cc -O2 -o claude-pet-windows src/x11windows.c -lX11
-//   claude-pet-windows <pet pid> <interval ms>
+//   claude-pet-windows <id of her overlay window, left out of the list> <interval ms>
 // Prints one line per poll, front-most window first, in physical screen pixels:
 //   id,x,y,w,h,fg;id,x,y,w,h,fg;...        (fg is 1 for the focused window)
 // It stops when whoever reads it goes away (SIGPIPE) or the X server does.
@@ -59,7 +59,7 @@ static int extents(Window w, Atom name, long out[4]) {
 }
 
 int main(int argc, char **argv) {
-  long pet = argc > 1 ? atol(argv[1]) : 0;
+  unsigned long self = argc > 1 ? strtoul(argv[1], NULL, 10) : 0; // her overlay: the app's other windows are ones she can stand on
   int ms = argc > 2 ? atoi(argv[2]) : 120;
   if (!(dpy = XOpenDisplay(NULL))) { fprintf(stderr, "claude-pet-windows: cannot open the X display\n"); return 1; }
   XSetErrorHandler(ignore_error);
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
        current = atom("_NET_CURRENT_DESKTOP"), desktop = atom("_NET_WM_DESKTOP"), state = atom("_NET_WM_STATE"),
        hidden = atom("_NET_WM_STATE_HIDDEN"), skip = atom("_NET_WM_STATE_SKIP_TASKBAR"), type = atom("_NET_WM_WINDOW_TYPE"),
        normal = atom("_NET_WM_WINDOW_TYPE_NORMAL"), dialog = atom("_NET_WM_WINDOW_TYPE_DIALOG"), frame = atom("_NET_FRAME_EXTENTS"),
-       gtk = atom("_GTK_FRAME_EXTENTS"), owner = atom("_NET_WM_PID");
+       gtk = atom("_GTK_FRAME_EXTENTS");
 
   for (;;) {
     unsigned long n = 0, i, na, nt;
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 
       if (!XGetWindowAttributes(dpy, w, &a) || a.map_state != IsViewable) continue; // minimised windows are not mapped
       if (has(w, state, hidden) || has(w, state, skip)) continue;                    // her own overlay skips the taskbar
-      if (cardinal(w, owner) == pet) continue;
+      if (w == self) continue;
       t = prop(w, type, &nt);
       plain = !t || (Atom)t[0] == normal || (Atom)t[0] == dialog; // not a dock, desktop, tooltip, toolbar, ...
       if (t) XFree(t);

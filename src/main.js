@@ -261,12 +261,18 @@ function updateFullscreen() {
   else if (!userHidden) win.showInactive();
 }
 
+// her overlay's native handle as text (an HWND on Windows, an X window id on Linux): the one window she must not stand on
+function overlayHandle() {
+  const b = win.getNativeWindowHandle();
+  return String(b.length >= 8 ? b.readBigUInt64LE(0) : b.readUInt32LE(0));
+}
+
 function startWatcher() {
   windowsApi.watch(120, (list) => {
     rawWindows = list;
     updateFullscreen();
     pushWindows(false);
-  });
+  }, overlayHandle());
 }
 
 // --- tray / menu -----------------------------------------------------------
