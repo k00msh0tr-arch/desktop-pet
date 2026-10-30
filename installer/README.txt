@@ -41,9 +41,9 @@ CHARACTERS
 Tray menu > Characters... opens the Characters window (so does starting Claude Pet a second time).
   Base       Sonnet, who comes with the app.
   Community  girls other people made, downloaded from the online catalog (needs internet).
-  Mine       your own. "New girl": drop her pictures in (name each file after its pose: idle, blink, thinking,
+  Library    your own. "Add": drop her pictures in (name each file after its pose: idle, blink, thinking,
              working, waiting, happy, thanks, oops, sleeping, held, fall, jump, sit, walk, walk2, climb, climb2;
-             only idle is required), type her name, press "Make her". Pictures need the same flat green
+             only idle is required), type her name, press "Create". Pictures need the same flat green
              background (or a transparent one). Export sends her to a friend as a .zip; Share offers her to everyone.
 Your girls live in  %APPDATA%\claude-pet\characters, outside the install folder, so reinstalling, updating or
 uninstalling never touches them.

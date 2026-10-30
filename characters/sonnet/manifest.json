@@ -1,6 +1,7 @@
 {
   "name": "Sonnet",
   "base": true,
+  "description": "The original Claude Pet character. She comes with the app.",
   "title": "Sonnet 5.5",
   "height": 340,
   "fps": 6,

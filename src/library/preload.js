@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 const call = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
 
 contextBridge.exposeInMainWorld('lib', {
+  platform: process.platform,
   list: call('lib:list'),
   catalog: call('lib:catalog'),
   equip: call('lib:equip'),

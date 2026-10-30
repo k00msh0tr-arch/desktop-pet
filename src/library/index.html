@@ -7,37 +7,40 @@
   <link rel="stylesheet" href="library.css">
 </head>
 <body>
-  <header>
-    <div>
+  <div class="ambient"><i></i><i></i><i></i></div>
+
+  <div class="app">
+    <aside class="side glass">
       <h1>Characters</h1>
-      <p class="sub">Pick who walks around your screen.</p>
-    </div>
-    <div class="actions">
-      <button id="import" class="ghost">Import pack…</button>
-      <button id="new" class="primary">＋ New girl</button>
-    </div>
-  </header>
+      <nav id="tabs"></nav>
+      <div class="side-foot">
+        <button id="new" class="btn primary wide"></button>
+        <button id="import" class="link"></button>
+        <button id="folder" class="link"></button>
+      </div>
+    </aside>
 
-  <nav id="tabs">
-    <button data-tab="base">Base</button>
-    <button data-tab="community">Community</button>
-    <button data-tab="mine">Mine</button>
-  </nav>
+    <section class="main">
+      <div class="topbar">
+        <label class="search glass"><span id="search-icon"></span><input id="search" placeholder="Search" autocomplete="off" spellcheck="false"><kbd>Ctrl K</kbd></label>
+      </div>
+      <div id="scroll">
+        <div id="note" class="glass" hidden></div>
+        <div id="hero"></div>
+        <h3 id="grid-title"></h3>
+        <div id="grid"></div>
+      </div>
+    </section>
+  </div>
 
-  <main>
-    <div id="note" hidden></div>
-    <div id="grid"></div>
-  </main>
-
-  <footer>
-    <span>Community girls come from the online catalog. Made one? Share it from <b>Mine</b>.</span>
-    <button id="folder" class="link">Open my characters folder</button>
-  </footer>
+  <div id="details-wrap" hidden>
+    <aside id="details" class="glass"></aside>
+  </div>
 
   <div id="wizard" class="modal" hidden>
-    <div class="sheet">
-      <h2>New girl</h2>
-      <p class="sub">Drop her pictures in, name her, done. Only <b>idle</b> is needed; any pose you skip borrows from another.</p>
+    <div class="sheet glass">
+      <h2>New character</h2>
+      <p class="sub">Drop the pictures in, name her, done. Only <b>idle</b> is needed; any pose you skip borrows from another.</p>
 
       <div class="fields">
         <label><span>Name</span><input id="w-name" maxlength="40" placeholder="Mia" autocomplete="off"></label>
@@ -45,7 +48,7 @@
       </div>
 
       <div id="drop" tabindex="0">
-        <span><b>Drop all her pictures here</b>, or click to choose.</span>
+        <span><b>Drop all the pictures here</b>, or click to choose.</span>
         <span class="muted">Name each file after its pose (idle.png, walk.png, …) and they place themselves.</span>
       </div>
 
@@ -60,13 +63,13 @@
       <pre id="w-error" hidden></pre>
       <div class="sheet-actions">
         <span id="w-status" class="muted"></span>
-        <button id="w-cancel" class="ghost">Cancel</button>
-        <button id="w-create" class="primary" disabled>Make her</button>
+        <button id="w-cancel" class="btn">Cancel</button>
+        <button id="w-create" class="btn primary" disabled>Create</button>
       </div>
     </div>
   </div>
 
-  <div id="toast" hidden></div>
+  <div id="toast" class="glass" hidden></div>
   <script src="library.js"></script>
 </body>
 </html>

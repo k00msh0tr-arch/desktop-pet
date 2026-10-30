@@ -1,6 +1,6 @@
 'use strict';
-// The Characters window: base girls, community girls (installed, and the online catalog) and your own, with equip,
-// download, remove, export, share and the "New girl" wizard. The page is in src/library/; this is its main-process side.
+// The Characters window: base girls, community girls (installed, and the online catalog) and your own, with select,
+// download, remove, export, share and the "Add" wizard. The page is in src/library/; this is its main-process side.
 
 const fs = require('fs');
 const path = require('path');
@@ -23,10 +23,26 @@ const fail = (err) => ({ ok: false, error: err.message || String(err) });
 // the id of a bundled girl may not be reused by a download or a girl of yours (it would hide her)
 const taken = (id) => fs.existsSync(ctx.bundled) && fs.readdirSync(ctx.bundled).some((n) => n.toLowerCase() === String(id).toLowerCase());
 
+// the average colour of the opaque pixels, which tints the card behind her
+function tintOf(img) {
+  const { width, height } = img.getSize();
+  const px = img.resize({ width: 24, height: Math.max(1, Math.round((24 * height) / width)) }).toBitmap(); // BGRA
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] < 200) continue;
+    b += px[i]; g += px[i + 1]; r += px[i + 2]; n++;
+  }
+  return n ? [Math.round(r / n), Math.round(g / n), Math.round(b / n)] : null;
+}
+
+// { url: a data: URL of her idle frame, tint }
 function previewOf(dir, manifest) {
   const file = path.join(dir, 'frames', [].concat(manifest.frames.idle)[0]);
   const key = `${file}|${fs.statSync(file).mtimeMs}`;
-  if (!previews.has(key)) previews.set(key, nativeImage.createFromPath(file).resize({ height: 240, quality: 'good' }).toDataURL());
+  if (!previews.has(key)) {
+    const img = nativeImage.createFromPath(file).resize({ height: 640, quality: 'good' });
+    previews.set(key, { url: img.toDataURL(), tint: tintOf(img) });
+  }
   return previews.get(key);
 }
 
@@ -36,7 +52,11 @@ function localItems() {
     try {
       const m = readJson(path.join(dir, 'manifest.json'));
       const marker = readJson(path.join(dir, 'catalog.json'));
-      out.push({ id, name: m.title || m.name || id, author: m.author || '', description: m.description || '', kind: m.base ? 'base' : marker ? 'community' : 'mine', sha256: marker ? marker.sha256 : null, preview: previewOf(dir, m) });
+      const p = previewOf(dir, m);
+      out.push({
+        id, name: m.title || m.name || id, author: m.author || '', description: m.description || '', poses: Object.keys(m.frames).length,
+        kind: m.base ? 'base' : marker ? 'community' : 'mine', sha256: marker ? marker.sha256 : null, preview: p.url, tint: p.tint,
+      });
     } catch (err) {
       console.error(`[pet] cannot list ${id}:`, err.message);
     }
@@ -53,7 +73,10 @@ function init(context) {
   ctx = context;
 
   ipcMain.handle('lib:list', () => ({ current: ctx.current(), items: localItems() }));
-  ipcMain.handle('lib:catalog', () => catalog.list().then((items) => ({ ok: true, items }), fail));
+  ipcMain.handle('lib:catalog', () => catalog.list().then((items) => ({
+    ok: true,
+    items: items.map((e) => ({ ...e, tint: e.preview ? tintOf(nativeImage.createFromDataURL(e.preview)) : null })),
+  }), fail));
   ipcMain.handle('lib:equip', (_e, id) => { if (ctx.characterDirs().has(id)) ctx.switchTo(id); return { ok: true }; });
 
   ipcMain.handle('lib:install', async (_e, id) => {
@@ -149,7 +172,9 @@ function open() {
     return;
   }
   win = new BrowserWindow({
-    width: 980, height: 700, minWidth: 720, minHeight: 520, title: 'Claude Pet: Characters', backgroundColor: '#1e1a17', autoHideMenuBar: true,
+    width: 1100, height: 740, minWidth: 880, minHeight: 580, title: 'Claude Pet: Characters', backgroundColor: '#08080c', autoHideMenuBar: true,
+    // on Windows the page draws the title bar and the system only adds its three buttons
+    ...(process.platform === 'win32' ? { titleBarStyle: 'hidden', titleBarOverlay: { color: '#00000000', symbolColor: '#d8d4e6', height: 44 } } : {}),
     webPreferences: { preload: path.join(__dirname, 'library', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.setMenu(null);

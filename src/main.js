@@ -308,8 +308,8 @@ const CHARS_README = `Add a character
      idle  (required)  blink  thinking  working  waiting  happy  thanks  oops  sleeping
      held  fall  jump  sit  walk  walk2  climb  climb2
    Every image needs the same flat green background. Only idle is required; missing poses borrow from others.
-3. That's it. She is built automatically in a few seconds and shows up under "Mine" in the Characters window
-   (tray menu > Characters...). That window's "New girl" button does all of this for you.
+3. That's it. She is built automatically in a few seconds and shows up under "Library" in the Characters window
+   (tray menu > Characters...). That window's "Add" button does all of this for you.
 
 Art for walk, climb and jump should face left.
 Optional: art.json next to the pictures, for example {"scales": {"sit": 0.9}}, resizes a pose.
@@ -326,7 +326,7 @@ const runArt = (dir) => new Promise((resolve) => {
   child.on('exit', (code) => done(code === 0));
 });
 
-// "New girl" in the Characters window: her pictures are copied to <CHARS>/<name>/raw, the art tool builds her frames and
+// "Add" in the Characters window: her pictures are copied to <CHARS>/<name>/raw, the art tool builds her frames and
 // her manifest gets her author. files: { pose: path of a picture }. Resolves { ok, log }; a failed build leaves nothing.
 const building = new Set(); // folders being built here, which the folder watcher must leave alone
 async function buildCharacter(name, author, files) {

@@ -19,7 +19,7 @@ Tray menu, **Characters…** (or just start the app a second time) opens the Cha
   **Kurumi** is the first: an unofficial, non-commercial fan redraw (an adult version) of Kurumi Tokisaki from *Date A
   Live*. The character belongs to her creators and rights holders; this project is not affiliated with them, and the art
   will be removed on request.
-- **Mine**: girls you made with **New girl**, or imported from a pack file. **Export** saves a girl as a `.zip` you can
+- **Library**: girls you made with **Add**, or imported from a pack file. **Details** has **Export**, which saves a girl as a `.zip` you can
   send to a friend (they use **Import pack…**); **Share** exports her and opens a GitHub form to offer her to everyone.
 
 ## Download and install (Windows, 64-bit)
@@ -56,9 +56,9 @@ or add `claude-pet.packages.${system}.default` to `environment.systemPackages` /
 
 ## Make your own character
 
-Characters window, **New girl**: drop her pictures in (name each file after its pose, like `idle.png` and `walk.png`, and
+Characters window, **Add**: drop her pictures in (name each file after its pose, like `idle.png` and `walk.png`, and
 they place themselves; `idle` is required, `blink thinking working waiting happy thanks oops sleeping held fall jump sit
-walk walk2 climb climb2` are optional; png, webp or jpg), type her name, press **Make her**. All pictures need the same
+walk walk2 climb climb2` are optional; png, webp or jpg), type her name, press **Create**. All pictures need the same
 flat green background (or a transparent one), and she should be the same size and in the same spot in each. Walk, climb
 and jump should face left. She is built in under a minute and put on your screen. More detail is in the sections below.
 
@@ -146,7 +146,7 @@ curl -X POST http://127.0.0.1:47821/debug -d "{\"state\":\"happy\",\"confetti\":
 
 ## Adding a character by dropping in pictures
 
-The Characters window's **New girl** does this for you; this is what happens under it. Only Sonnet ships in `characters/`
+The Characters window's **Add** does this for you; this is what happens under it. Only Sonnet ships in `characters/`
 (a folder with `"base": true` in its manifest is a base girl). Downloaded and made girls live in the user folder
 (`%APPDATA%\claude-pet\characters` on Windows, `~/.config/claude-pet/characters` on Linux; the Characters window's
 footer opens it), which an update or reinstall never touches.
@@ -154,7 +154,7 @@ Make a folder there named after her, drop in images named like the poses in the 
 `idle` is required; they can sit directly in the folder or in a `raw` subfolder) and she is built automatically within
 seconds: the app watches the folder and runs `tools/process-art.js` in a separate process, which keys out the green,
 lines the standing frames up, writes `frames/`, `_contact-*.png` and (unless you wrote your own) a `manifest.json` marked
-`"auto"`, then offers her under Mine. `import-log.txt` in her folder says what happened. An `art.json` next to the images
+`"auto"`, then offers her under Library. `import-log.txt` in her folder says what happened. An `art.json` next to the images
 (`{"scales": {"sit": 0.9}}`) resizes a pose. `npm run art -- <name or path>` runs the same tool by hand.
 A standing pose whose legs are nothing like idle's (a jump for joy as `happy`) is spotted automatically: it is grounded
 like `sit` and `jump`, and the manifest marks it `"hop": true`, so she bounces while it is shown.

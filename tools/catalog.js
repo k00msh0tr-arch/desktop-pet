@@ -38,7 +38,7 @@ async function build() {
     const buf = fs.readFileSync(path.join(PACKS, f));
     const { id, manifest, files } = charpack.parse(buf);
     if (f !== `${id}.zip`) throw new Error(`${f} must be named ${id}.zip`);
-    await sharp(files[`frames/${[].concat(manifest.frames.idle)[0]}`]).resize({ height: 260 }).png({ compressionLevel: 9 }).toFile(path.join(PREVIEWS, `${id}.png`));
+    await sharp(files[`frames/${[].concat(manifest.frames.idle)[0]}`]).resize({ height: 640 }).png({ compressionLevel: 9 }).toFile(path.join(PREVIEWS, `${id}.png`));
     characters.push({
       id, name: manifest.title || manifest.name, author: manifest.author || '', description: manifest.description || '',
       zip: `packs/${f}`, preview: `previews/${id}.png`, sha256: crypto.createHash('sha256').update(buf).digest('hex'), size: buf.length,
