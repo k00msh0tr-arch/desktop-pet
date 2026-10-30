@@ -3,6 +3,17 @@
 const assert = require('assert');
 const { Actor } = require('../src/renderer/physics');
 
+// The simulation uses Math.random (where she wanders, when she sits), and a few checks below are about timing she may
+// legitimately vary by a frame or two, so unseeded they fail about one run in a hundred. A fixed seed makes every run
+// identical; SEED=<number> npm test tries another one.
+let seed = Number(process.env.SEED) || 20260101;
+Math.random = () => { // mulberry32
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
 const W = 1000, H = 800;
 const make = () => new Actor({ spriteW: 177, spriteH: 340, anchor: 0.5, half: 55, feetInset: 3 });
 const run = (a, seconds, ctx = {}) => { for (let t = 0; t < seconds; t += 1 / 60) a.update(1 / 60, ctx); };
@@ -282,7 +293,8 @@ const near = (v, target, tol = 1) => assert(Math.abs(v - target) <= tol, `${v} n
   a.reset(300);
   a.startClimbOn({ kind: 'window', id: 'high', side: 'left', x: a.sideX(high[0], 'left'), face: 'right' }, H);
   assert.strictEqual(a.climb.topY, 200, 'climbs right up to the top edge, not stopping where her whole body shows');
-  run(a, 20, { roam: true });
+  // stop the moment she is up: left to roam on a 300px window she may stroll off its edge, which is not what this checks
+  for (let t = 0; t < 20 && !(a.mode === 'ground' && a.platformId === 'high'); t += 1 / 60) a.update(1 / 60, { roam: true });
   assert.strictEqual(a.platformId, 'high', `she should be standing on the window, but is ${a.mode} on ${a.platformId}`);
   near(a.y, 200);
 
