@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob: file:; style-src file:; script-src file:">
+  <title>Claude Pet: Studio</title>
+  <link rel="stylesheet" href="../library/library.css">
+  <link rel="stylesheet" href="studio.css">
+</head>
+<body>
+  <div class="ambient"><i></i><i></i><i></i></div>
+
+  <div class="app">
+    <aside class="side glass">
+      <h1>Studio</h1>
+      <div class="proj">
+        <select id="project" aria-label="Project"></select>
+        <button id="new-project" class="icon-btn" title="New project" aria-label="New project"></button>
+      </div>
+      <nav id="steps"></nav>
+      <div class="side-foot">
+        <button id="settings" class="link"></button>
+        <button id="remove" class="link"></button>
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="topbar"></div>
+      <div id="scroll"><div id="panel"></div></div>
+    </section>
+  </div>
+
+  <div id="newproj" class="modal" hidden>
+    <div class="sheet glass small">
+      <h2>New project</h2>
+      <p class="sub">One project is one character: her design, her prompts and every picture you try.</p>
+      <label><span>Name</span><input id="np-name" maxlength="60" placeholder="Mia" autocomplete="off"></label>
+      <div class="sheet-actions"><button id="np-cancel" class="btn">Cancel</button><button id="np-create" class="btn primary" disabled>Create</button></div>
+    </div>
+  </div>
+
+  <div id="reply" class="modal" hidden>
+    <div class="sheet glass">
+      <h2>Better prompts, written by Claude</h2>
+      <p class="sub">Free: you carry the text between the two. Claude Code, claude.ai or any Claude chat will do.</p>
+      <ol class="steps-list">
+        <li><button id="rp-copy" class="btn">Copy the request</button> and paste it into Claude. It answers with a block of JSON.</li>
+        <li>Copy that answer and paste it here:</li>
+      </ol>
+      <textarea id="rp-text" rows="8" placeholder='{ "idle": "...", "blink": "...", ... }'></textarea>
+      <div class="sheet-actions"><button id="rp-cancel" class="btn">Cancel</button><button id="rp-apply" class="btn primary" disabled>Use these prompts</button></div>
+    </div>
+  </div>
+
+  <div id="prefs" class="modal" hidden>
+    <div class="sheet glass small">
+      <h2>Upscaler</h2>
+      <p class="sub">Optional. A program on this computer that makes a picture sharper and bigger, like <b>Real-ESRGAN</b> (free; its anime model suits sprites). Leave it empty to skip upscaling.</p>
+      <label><span>Program</span><div class="inline"><input id="pf-exe" placeholder="C:\tools\realesrgan-ncnn-vulkan.exe" autocomplete="off" spellcheck="false"><button id="pf-pick" class="btn">Browse…</button></div></label>
+      <label><span>Arguments <span class="muted">({in} and {out} are the pictures)</span></span><input id="pf-args" autocomplete="off" spellcheck="false"></label>
+      <div class="sheet-actions"><button id="pf-get" class="link">Get Real-ESRGAN</button><button id="pf-cancel" class="btn">Cancel</button><button id="pf-save" class="btn primary">Save</button></div>
+    </div>
+  </div>
+
+  <div id="toast" class="glass" hidden></div>
+  <script src="../ui/ui.js"></script>
+  <script src="prompts.js"></script>
+  <script src="studio.js"></script>
+</body>
+</html>

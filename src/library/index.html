@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'self'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob: file:; style-src file:; script-src file:">
   <title>Claude Pet: Characters</title>
   <link rel="stylesheet" href="library.css">
 </head>
@@ -15,6 +15,7 @@
       <nav id="tabs"></nav>
       <div class="side-foot">
         <button id="new" class="btn primary wide"></button>
+        <button id="studio" class="btn wide"></button>
         <button id="import" class="link"></button>
         <button id="folder" class="link"></button>
       </div>
@@ -70,6 +71,7 @@
   </div>
 
   <div id="toast" class="glass" hidden></div>
+  <script src="../ui/ui.js"></script>
   <script src="library.js"></script>
 </body>
 </html>

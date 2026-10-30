@@ -17,65 +17,9 @@ const TABS = [['base', 'Base', 'base'], ['community', 'Community', 'community'],
 const KIND = { base: 'Base', community: 'Community', mine: 'Library' };
 const TITLES = { base: 'All characters', community: 'All characters', mine: 'Your characters' };
 
-const NS = 'http://www.w3.org/2000/svg';
-const ICONS = {
-  base: 'M12 3.2l2.5 5.4 5.9.7-4.4 4 1.2 5.8L12 16.2l-5.2 2.9 1.2-5.8-4.4-4 5.9-.7L12 3.2z',
-  community: 'M9 11.2a3.1 3.1 0 100-6.2 3.1 3.1 0 000 6.2zM3.2 19c.4-3 2.7-4.7 5.8-4.7s5.4 1.7 5.8 4.7M16.4 11a2.7 2.7 0 100-5.4M17.6 14.4c2 .5 3.1 2 3.4 4.6',
-  library: 'M5 4.5v15M9.5 4.5v15M14 4.5v15M17.2 5.6l3 13.4',
-  search: 'M10.8 17.6a6.8 6.8 0 100-13.6 6.8 6.8 0 000 13.6zM20 20l-4.4-4.4',
-  plus: 'M12 5v14M5 12h14',
-  download: 'M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 20h14',
-  upload: 'M12 15V4M7.5 8.5L12 4l4.5 4.5M5 15v4h14v-4',
-  close: 'M6 6l12 12M18 6L6 18',
-  folder: 'M3.5 7.5A1.5 1.5 0 015 6h4l2 2.2h8a1.5 1.5 0 011.5 1.5v7.8a1.5 1.5 0 01-1.5 1.5H5a1.5 1.5 0 01-1.5-1.5v-10z',
-};
-
-const $ = (s) => document.querySelector(s);
-const el = (tag, cls, text) => {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
-};
-function icon(name) {
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('class', 'ico');
-  const p = document.createElementNS(NS, 'path');
-  p.setAttribute('d', ICONS[name]);
-  svg.append(p);
-  return svg;
-}
-
 const state = { tab: 'base', current: null, local: [], cat: null, loadingCat: false, busy: new Set(), query: '', open: null };
 
-// ---- showing and hiding with a fade ---------------------------------------------------
-// show() runs the element's "in" animation (the CSS plays it whenever it becomes displayed); hide() plays "out", then removes it
-const OUT_MS = 220;
-const isOpen = (n) => !n.hidden && !n.classList.contains('out');
-function show(n) { clearTimeout(n._out); n.classList.remove('out'); n.hidden = false; }
-function hide(n) {
-  if (n.hidden || n.classList.contains('out')) return;
-  n.classList.add('out');
-  n._out = setTimeout(() => { n.hidden = true; n.classList.remove('out'); }, OUT_MS);
-}
-// a new element rises in, a little after the one before it; the class goes when it is done so hover can take over
-function enter(n, i) {
-  n.style.setProperty('--i', Math.min(i, 12));
-  n.classList.add('enter');
-  n.addEventListener('animationend', () => n.classList.remove('enter'), { once: true });
-}
-
 // ---- messages -------------------------------------------------------------------
-let toastTimer = null;
-function toast(msg, isErr) {
-  const t = $('#toast');
-  clearTimeout(toastTimer);
-  t.textContent = msg;
-  t.className = `glass${isErr ? ' err' : ''}`;
-  show(t);
-  toastTimer = setTimeout(() => hide(t), isErr ? 7000 : 4000);
-}
 const report = (r, ok) => { if (r.ok) toast(ok); else if (!r.cancelled) toast(r.error, true); return r; };
 
 // run one action per character at a time, with its buttons showing a spinner while it works
@@ -220,12 +164,7 @@ function syncGrid(grid, list, extras) {
   });
   cardNodes = next;
   nodes.push(...extras);
-  let ref = grid.firstChild;
-  for (const n of nodes) {
-    if (n === ref) ref = ref.nextSibling; // already in place: moving it would restart its animation
-    else grid.insertBefore(n, ref);
-  }
-  while (ref) { const nx = ref.nextSibling; ref.remove(); ref = nx; }
+  syncChildren(grid, nodes);
 }
 
 let heroNode = null;
@@ -401,12 +340,6 @@ function pick(multiple, onFiles) {
   input.click();
 }
 
-function over(node, onDrop) {
-  node.addEventListener('dragover', (e) => { e.preventDefault(); node.classList.add('over'); });
-  node.addEventListener('dragleave', () => node.classList.remove('over'));
-  node.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); node.classList.remove('over'); onDrop([...e.dataTransfer.files]); });
-}
-
 // the slots are built once; a slot gets or loses its picture in place
 const slotNodes = {};
 function buildSlots() {
@@ -491,6 +424,8 @@ async function create() {
 if (lib.platform === 'win32') document.body.classList.add('win');
 $('#search-icon').append(icon('search'));
 $('#new').append(icon('plus'), el('span', null, 'Add'));
+$('#studio').append(icon('wand'), el('span', null, 'Create with AI'));
+$('#studio').addEventListener('click', () => lib.openStudio());
 $('#import').append(icon('upload'), el('span', null, 'Import pack…'));
 $('#folder').append(icon('folder'), el('span', null, 'Open my folder'));
 buildSlots();

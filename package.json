@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "test": "node test/physics.test.js && node test/windows.test.js && node test/charpack.test.js",
+    "test": "node test/physics.test.js && node test/windows.test.js && node test/charpack.test.js && node test/studio.test.js",
     "art": "node tools/process-art.js",
     "pack": "node tools/pack.js",
     "hooks:install": "node tools/hooks.js install",

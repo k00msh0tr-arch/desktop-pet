@@ -22,6 +22,8 @@ Tray menu, **Characters…** (or just start the app a second time) opens the Cha
 - **Library**: girls you made with **Add**, or imported from a pack file. **Details** has **Export**, which saves a girl as a `.zip` you can
   send to a friend (they use **Import pack…**); **Share** exports her and opens a GitHub form to offer her to everyone.
 
+**Create with AI** in the sidebar (or tray, **Sprite studio…**) opens the Sprite studio, which makes a whole character from one picture of her design. It is free, see below.
+
 ## Download and install (Windows, 64-bit)
 
 1. Get the latest zip from the **Releases** page of this repository and unzip it.
@@ -171,6 +173,18 @@ the sit image her seat is, 0 to 1) makes her sit with her seat on the top edge o
 only ever on window tops. Characters the tool built are sized so their idle body is as tall as Sonnet's at the same
 size setting, however much headroom their frame has.
 
+## Sprite studio
+
+Characters window, **Create with AI** (or the tray menu, **Sprite studio…**). It turns one picture of your design into a whole character and costs nothing: Google's image API has no free tier, so the Gemini step stays yours, in the Gemini app, and the studio does everything around it. Nothing is sent anywhere by the app and no API key is needed.
+
+1. **Design**: her picture, her personality, an art style. **Write the prompts** gives one prompt for each of the 17 poses at once (built in, instant). For prompts that fit her personality, **Make them better with Claude…** copies a request for you to paste into Claude (Claude Code, claude.ai, any chat) and takes its JSON answer back.
+2. **Each pose**: **Copy prompt**, **Copy reference picture** (her accepted idle), **Open Gemini**. In Gemini paste the picture, then the prompt, and generate; copy the picture it made and press Ctrl+V in the studio (or drag it in). Every try is kept: **Accept** one, **Delete** one, or regenerate with a note on what should change.
+3. **Build**: the accepted pictures go through the art tool and she appears in your library and on your screen. Poses without a picture borrow from another, so you can build early and come back later.
+
+Optional upscaler (the gear in the studio's sidebar): any program on your computer that takes an input and an output picture, for example the ncnn build of [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) with its anime model (the default arguments are `-i {in} -o {out} -n realesrgan-x4plus-anime`). **Upscale** works on one try, **Upscale the accepted pictures** on all of them; results are brought down to 2400px tall. The studio never opens a shell: the program is started with its arguments as a list. Projects are kept in `<user data>/studio` and can be deleted from the studio.
+
+The prompts (`src/studio/prompts.js`) end with the same rules every time (same camera, same size, flat green background, side view facing left for walk, climb and jump), so the art tool can line the poses up.
+
 ## The community catalog
 
 The Community tab reads `catalog/index.json` from this repository's `main` branch (`src/catalog.js`; `PET_CATALOG=<url>`
@@ -201,4 +215,4 @@ install and uninstalling against a fake user profile; not yet run on a second re
 ## Tests
 
 `npm test` runs the physics tests (landing, windows, riding, throwing, twenty simulated minutes of roaming), the
-parser for the X11 window helper, and the character pack and zip tests (round trip, and every way a pack can be hostile).
+parser for the X11 window helper, the character pack and zip tests (round trip, and every way a pack can be hostile), and the studio's prompt writer (what comes back from Claude in every shape).

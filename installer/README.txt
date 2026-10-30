@@ -45,6 +45,8 @@ Tray menu > Characters... opens the Characters window (so does starting Claude P
              working, waiting, happy, thanks, oops, sleeping, held, fall, jump, sit, walk, walk2, climb, climb2;
              only idle is required), type her name, press "Create". Pictures need the same flat green
              background (or a transparent one). Export sends her to a friend as a .zip; Share offers her to everyone.
+"Create with AI" (or tray > Sprite studio...) makes a whole character from one picture of her design: it writes the
+prompts for every pose, you make the pictures in the Gemini app (free), paste them in, accept or redo each, and it builds her.
 Your girls live in  %APPDATA%\claude-pet\characters, outside the install folder, so reinstalling, updating or
 uninstalling never touches them.
 

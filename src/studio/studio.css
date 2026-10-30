@@ -1,0 +1,69 @@
+/* The Studio: the Characters window's look (library.css) plus what only it has. */
+
+.proj { display: flex; gap: 8px; padding: 0 2px 12px; }
+select { flex: 1; min-width: 0; font: inherit; color: var(--text); background: rgba(0, 0, 0, .3); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; transition: border-color .2s var(--ease); }
+select:focus { border-color: var(--accent); }
+select option { background: #1b1826; }
+
+#steps { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; overflow: auto; margin: 0 -6px; padding: 0 6px; }
+#steps::-webkit-scrollbar { width: 8px; }
+#steps::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .13); border: 2px solid transparent; background-clip: content-box; border-radius: 99px; }
+.step { display: flex; align-items: center; gap: 10px; flex: none; height: 36px; padding: 0 12px; border: 0; border-radius: 11px; background: none; color: var(--muted); text-align: left; cursor: pointer; transition: background .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease); }
+.step:hover { background: rgba(255, 255, 255, .07); color: var(--text); }
+.step.on { background: rgba(139, 124, 246, .22); color: var(--text); box-shadow: inset 0 0 0 1px rgba(139, 124, 246, .38); }
+.step .mark { margin-left: auto; display: grid; place-items: center; width: 16px; height: 16px; }
+.step .mark i { width: 7px; height: 7px; border-radius: 50%; background: #e8b84a; }
+.step.done .mark { color: var(--ok); }
+.step .mark .ico { width: 16px; height: 16px; }
+.step-gap { flex: none; height: 1px; margin: 6px 10px; background: var(--line); }
+
+.view { max-width: 860px; margin: 0 auto; padding: 4px 4px 24px; }
+.view h2 { font-size: 27px; font-weight: 650; letter-spacing: -.015em; }
+.view .sub { margin: 3px 0 18px; }
+.box { margin: 16px 0; padding: 18px 20px; border-radius: 22px; }
+.box h3 { margin: 0 0 12px; font-size: 14px; font-weight: 650; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.fields3 { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 14px; }
+textarea { width: 100%; font: inherit; line-height: 1.5; color: var(--text); background: rgba(0, 0, 0, .3); border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; resize: vertical; transition: border-color .2s var(--ease), box-shadow .25s var(--ease); }
+textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(139, 124, 246, .16); }
+.row { margin-top: 12px; }
+.box > input { width: 100%; }
+.hint { margin: 12px 0 0; color: var(--muted); font-size: 12.5px; }
+.warn { margin: 0 0 14px; padding: 10px 14px; border-radius: 14px; background: rgba(232, 184, 74, .1); border: 1px solid rgba(232, 184, 74, .4); color: #f0cf85; font-size: 13px; }
+.status { color: var(--muted); font-size: 12.5px; }
+.inline { display: flex; gap: 8px; }
+.inline input { flex: 1; min-width: 0; }
+
+.zone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 20px; text-align: center; color: var(--muted); border: 1.5px dashed rgba(255, 255, 255, .22); border-radius: 18px; cursor: pointer; transition: border-color .2s var(--ease), background .2s var(--ease); }
+.zone:hover, .zone.over { border-color: var(--accent); background: rgba(139, 124, 246, .1); color: var(--text); }
+.zone.source { height: 270px; position: relative; overflow: hidden; padding: 0; }
+.zone.source img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #15131b; }
+.zone.source .change { position: absolute; right: 12px; bottom: 12px; padding: 4px 12px; border-radius: 99px; background: rgba(10, 10, 16, .7); backdrop-filter: blur(8px); border: 1px solid var(--line); font-size: 12px; color: var(--text); }
+
+.variants { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 14px; }
+.variants:empty { display: none; }
+.variant { position: relative; overflow: hidden; border-radius: 18px; border: 1px solid var(--line); background: #15131b; transition: border-color .2s var(--ease), box-shadow .3s var(--ease); }
+.variant.on { border-color: rgba(127, 212, 154, .85); box-shadow: 0 0 0 1px rgba(127, 212, 154, .5), 0 0 34px rgba(127, 212, 154, .22); }
+.variant .pic { position: relative; height: 240px; }
+.variant .pic img { width: 100%; height: 100%; object-fit: contain; }
+.variant .tag { left: 10px; right: auto; }
+.variant .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 9px; background: rgba(8, 8, 12, .5); }
+.variant .acts .btn { padding: 5px 12px; font-size: 12px; }
+.variant .acts .icon-btn { width: 30px; height: 30px; margin-left: auto; }
+
+.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.thumb { overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: #15131b; text-align: center; font-size: 11px; color: var(--muted); }
+.thumb img { display: block; width: 100%; height: 104px; object-fit: contain; }
+.thumb span { display: block; padding: 3px 0 5px; }
+.thumb.missing { border-style: dashed; background: none; }
+.thumb.missing .none { display: grid; place-items: center; height: 104px; color: var(--faint); font-size: 22px; }
+#panel .error { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--err); border-radius: 12px; color: var(--err); white-space: pre-wrap; font: 12px/1.4 ui-monospace, Consolas, monospace; }
+
+.sheet.small { width: min(520px, 100%); }
+.sheet label { margin-top: 12px; }
+.steps-list { margin: 14px 0 10px; padding-left: 22px; color: var(--muted); }
+.steps-list li { margin: 8px 0; }
+.sheet textarea { margin-top: 4px; }
+.sheet-actions { margin-top: 18px; }
+.sheet-actions .link { margin-right: auto; }
+.empty-view { padding: 90px 10px; text-align: center; color: var(--muted); }
+.empty-view .btn { margin-top: 14px; }

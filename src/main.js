@@ -10,6 +10,7 @@ const windowsApi = require('./windows');
 const hooks = require('../tools/hooks');
 const art = require('../tools/art-source');
 const library = require('./library');
+const studio = require('./studio');
 
 if (process.env.PET_USER_DATA) app.setPath('userData', process.env.PET_USER_DATA); // for tests
 // What ships with the app: the base girl (<project>/characters, or app\characters in an installed copy; read-only in the
@@ -460,6 +461,7 @@ function buildMenu() {
     { label: 'Climb on open windows', type: 'checkbox', checked: config.windows, click: (i) => { config.windows = i.checked; saveConfig(); pushWindows(true); } },
     { label: 'Size', submenu: SIZES.map(([label, h]) => ({ label, type: 'radio', checked: currentH === h, click: () => { config.height = h; applyLayout(); } })) },
     { label: 'Characters…', click: library.open },
+    { label: 'Sprite studio…', click: studio.open },
     { label: 'Switch character', submenu: chars.map((id) => ({ label: id, type: 'radio', checked: id === character.id, click: () => switchCharacter(id) })) },
     { label: 'Always on top', type: 'checkbox', checked: config.onTop, click: (i) => { config.onTop = i.checked; win.setAlwaysOnTop(i.checked, 'floating'); saveConfig(); } },
     {
@@ -629,7 +631,8 @@ if (gotLock) app.whenReady().then(() => {
   character = loadCharacter(id);
   pet = new Pet();
   pet.on('change', (s) => win && win.webContents.send('state', s));
-  library.init({ bundled: BUNDLED, userChars: CHARS, characterDirs, current: () => character.id, switchTo: switchCharacter, build: buildCharacter, refreshed: refreshTray });
+  library.init({ bundled: BUNDLED, userChars: CHARS, characterDirs, current: () => character.id, switchTo: switchCharacter, build: buildCharacter, refreshed: refreshTray, openStudio: studio.open });
+  studio.init({ create: library.create, select: library.select, openLibrary: library.open });
   app.on('second-instance', library.open); // starting the app again opens its window
   wireIpc();
   createWindow();

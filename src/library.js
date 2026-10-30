@@ -69,6 +69,30 @@ function issueUrl(title, author) {
   return `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(`Community girl: ${title}`)}&body=${encodeURIComponent(body)}`;
 }
 
+// { name, author, files: { pose: path }, overwrite } -> her pictures become a girl via the art tool
+async function create({ name, author, files, overwrite }) {
+  try {
+    const folder = String(name || '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/[. ]+$/, '').slice(0, 40);
+    if (!folder) throw new Error('Give her a name.');
+    if (taken(folder)) throw new Error(`${folder} is a base girl's name. Pick another.`);
+    if (!files || !files.idle) throw new Error('She needs at least an idle picture.');
+    for (const [pose, src] of Object.entries(files)) {
+      if (!POSES.includes(pose) || typeof src !== 'string' || !PICTURE.test(src)) throw new Error(`${pose}: that is not a png, webp or jpg picture.`);
+      const st = fs.statSync(src);
+      if (!st.isFile() || st.size > MAX_PICTURE) throw new Error(`${pose}: the picture is missing or too big.`);
+    }
+    if (fs.existsSync(path.join(ctx.userChars, folder)) && !overwrite) return { ok: false, exists: true };
+    const r = await ctx.build(folder, String(author || '').trim().slice(0, 60), files);
+    if (!r.ok) return { ok: false, error: r.log.trim().split('\n').slice(-8).join('\n') || 'The art tool failed.' };
+    ctx.refreshed();
+    return { ok: true, id: folder };
+  } catch (err) { return fail(err); }
+}
+
+
+// put a girl on the screen (what picking her in the window does)
+const select = (id) => { if (ctx.characterDirs().has(id)) ctx.switchTo(id); };
+
 function init(context) {
   ctx = context;
 
@@ -77,7 +101,7 @@ function init(context) {
     ok: true,
     items: items.map((e) => ({ ...e, tint: e.preview ? tintOf(nativeImage.createFromDataURL(e.preview)) : null })),
   }), fail));
-  ipcMain.handle('lib:equip', (_e, id) => { if (ctx.characterDirs().has(id)) ctx.switchTo(id); return { ok: true }; });
+  ipcMain.handle('lib:equip', (_e, id) => { select(id); return { ok: true }; });
 
   ipcMain.handle('lib:install', async (_e, id) => {
     try {
@@ -137,25 +161,8 @@ function init(context) {
     } catch (err) { return fail(err); }
   });
 
-  // { name, author, files: { pose: path }, overwrite } -> her pictures become a girl via the art tool
-  ipcMain.handle('lib:create', async (_e, { name, author, files, overwrite }) => {
-    try {
-      const folder = String(name || '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/[. ]+$/, '').slice(0, 40);
-      if (!folder) throw new Error('Give her a name.');
-      if (taken(folder)) throw new Error(`${folder} is a base girl's name. Pick another.`);
-      if (!files || !files.idle) throw new Error('She needs at least an idle picture.');
-      for (const [pose, src] of Object.entries(files)) {
-        if (!POSES.includes(pose) || typeof src !== 'string' || !PICTURE.test(src)) throw new Error(`${pose}: that is not a png, webp or jpg picture.`);
-        const st = fs.statSync(src);
-        if (!st.isFile() || st.size > MAX_PICTURE) throw new Error(`${pose}: the picture is missing or too big.`);
-      }
-      if (fs.existsSync(path.join(ctx.userChars, folder)) && !overwrite) return { ok: false, exists: true };
-      const r = await ctx.build(folder, String(author || '').trim().slice(0, 60), files);
-      if (!r.ok) return { ok: false, error: r.log.trim().split('\n').slice(-8).join('\n') || 'The art tool failed.' };
-      ctx.refreshed();
-      return { ok: true, id: folder };
-    } catch (err) { return fail(err); }
-  });
+  ipcMain.handle('lib:create', (_e, args) => create(args));
+  ipcMain.handle('lib:open-studio', () => ctx.openStudio());
 
   ipcMain.handle('lib:open-folder', async () => {
     fs.mkdirSync(ctx.userChars, { recursive: true });
@@ -192,4 +199,4 @@ function open() {
 
 const changed = () => { if (win) win.webContents.send('changed'); };
 
-module.exports = { init, open, changed };
+module.exports = { init, open, changed, create, select };
