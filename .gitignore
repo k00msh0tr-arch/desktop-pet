@@ -1,6 +1,7 @@
 # dependencies and build output
 node_modules/
 dist/
+result
 
 # scrap folder
 characters/_wip/

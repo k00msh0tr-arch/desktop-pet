@@ -1,7 +1,9 @@
 'use strict';
-// Reads the position of the visible top-level windows (Windows only) so the pet can
+// Reads the position of the visible top-level windows (Windows, and X11 on Linux) so the pet can
 // stand on them and climb them. It only reads geometry: no titles, no content.
 // Rectangles are in physical screen pixels, front-most window first.
+
+const { spawn } = require('child_process');
 
 const TOOLWINDOW = 0x80;
 const NOACTIVATE = 0x08000000;
@@ -81,7 +83,31 @@ function snapshot() {
   return out;
 }
 
+// X11: a small native helper (x11windows.c) prints one line per poll. The Nix package builds it and sets
+// PET_X11_HELPER; without it, or without an X server, she just has no windows to stand on.
+const parseX11 = (line) => line.split(';').filter(Boolean).map((s) => {
+  const [id, x, y, w, h, fg] = s.split(',');
+  return { id, x: +x, y: +y, w: +w, h: +h, fg: fg === '1' };
+});
+
+function watchX11(intervalMs, onSnapshot) {
+  const helper = process.env.PET_X11_HELPER;
+  if (!helper) return { stop() {} };
+  const child = spawn(helper, [String(process.pid), String(intervalMs)], { stdio: ['ignore', 'pipe', 'inherit'] });
+  let buf = '';
+  child.stdout.setEncoding('utf8').on('data', (chunk) => {
+    const lines = (buf + chunk).split('\n');
+    buf = lines.pop(); // a half-written line waits for the rest
+    if (!lines.length) return;
+    try { onSnapshot(parseX11(lines.pop())); } catch (err) { console.error('[pet] window poll failed:', err.message); }
+  });
+  child.on('error', (err) => console.error('[pet] window tracking unavailable:', err.message));
+  // no stop needed at quit: the pipe closes with her and the helper ends on its next write
+  return { stop: () => child.kill() };
+}
+
 function watch(intervalMs, onSnapshot) {
+  if (process.platform === 'linux') return watchX11(intervalMs, onSnapshot);
   if (!load()) return { stop() {} };
   const timer = setInterval(() => {
     try { onSnapshot(snapshot()); } catch (err) { console.error('[pet] window poll failed:', err.message); }
@@ -89,4 +115,4 @@ function watch(intervalMs, onSnapshot) {
   return { stop: () => clearInterval(timer) };
 }
 
-module.exports = { snapshot, watch };
+module.exports = { snapshot, watch, parseX11 };

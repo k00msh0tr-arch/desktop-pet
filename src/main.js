@@ -20,6 +20,10 @@ const PREVIEW_POSES = ['held', 'fall', 'walk', 'climb', 'jump', 'sit'];
 // poses she can borrow from another when the character has no art of its own for them yet
 const FALLBACK = { blink: 'idle', working: 'thinking', thanks: 'happy', sleeping: 'idle', held: 'oops', fall: 'waiting', climb: 'waiting', walk: 'idle', jump: 'waiting' };
 
+// The Nix build has no sharp and a read-only characters folder, whose file times Nix also resets, so every
+// character would look out of date: it ships the built-in characters only.
+const CAN_IMPORT = !process.env.PET_NO_IMPORT;
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
 
@@ -205,6 +209,10 @@ function createWindow() {
 
 // --- open windows she can stand on -----------------------------------------
 function dipRect(w) {
+  if (process.platform === 'linux') { // screenToDipRect is Windows only
+    const a = screen.screenToDipPoint({ x: w.x, y: w.y }), b = screen.screenToDipPoint({ x: w.x + w.w, y: w.y + w.h });
+    return { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y };
+  }
   return screen.screenToDipRect(null, { x: w.x, y: w.y, width: w.w, height: w.h });
 }
 
@@ -420,9 +428,11 @@ function buildMenu() {
       label: 'Character',
       submenu: [
         ...chars.map((id) => ({ label: id, type: 'radio', checked: id === character.id, click: () => switchCharacter(id) })),
-        { type: 'separator' },
-        { label: 'Add a character (open the folder)…', click: openCharsFolder },
-        { label: 'Reload characters', click: () => importCharacters(true) },
+        ...(CAN_IMPORT ? [
+          { type: 'separator' },
+          { label: 'Add a character (open the folder)…', click: openCharsFolder },
+          { label: 'Reload characters', click: () => importCharacters(true) },
+        ] : []),
       ],
     },
     { label: 'Always on top', type: 'checkbox', checked: config.onTop, click: (i) => { config.onTop = i.checked; win.setAlwaysOnTop(i.checked, 'floating'); saveConfig(); } },
@@ -601,8 +611,18 @@ if (gotLock) app.whenReady().then(() => {
     },
   });
   startWatcher();
-  watchCharacters();
-  importCharacters(); // pick up anything dropped in while she was not running
+  // Linux has no { forward: true }: while she is click-through the page gets no mouse events, so hand it the cursor
+  if (process.platform === 'linux') {
+    setInterval(() => {
+      if (!win) return;
+      const p = screen.getCursorScreenPoint();
+      win.webContents.send('cursor', { x: p.x - overlay.x, y: p.y - overlay.y });
+    }, 33);
+  }
+  if (CAN_IMPORT) {
+    watchCharacters();
+    importCharacters(); // pick up anything dropped in while she was not running
+  }
   const refit = () => {
     const d = screen.getAllDisplays().find((x) => x.id === overlay.id) || screen.getPrimaryDisplay();
     fitOverlay(d);

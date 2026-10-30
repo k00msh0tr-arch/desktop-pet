@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('pet', {
   onSettings: on('settings'),
   onPreview: on('preview'),
   onDrop: on('drop'),
+  onCursor: on('cursor'),
   setIgnore: (ignore) => ipcRenderer.send('ignore', ignore),
   click: () => ipcRenderer.send('click'),
   contextMenu: () => ipcRenderer.send('context-menu'),

@@ -342,6 +342,12 @@ window.pet.onWindows((list) => {
 window.pet.onSettings((s) => { wander = s.wander; });
 window.pet.onPreview(({ pose, ms }) => { preview = { pose, until: performance.now() + ms }; });
 window.pet.onDrop(() => { if (actor) actor.dropFromTop(); });
+// Linux only: real mouse events don't arrive while she is click-through, so main sends the cursor instead
+window.pet.onCursor(({ x, y }) => {
+  if (!ignoring || down) return;
+  mouse = { x, y };
+  setIgnore(!overSprite(x, y));
+});
 
 // hooks for the self-test screenshots
 window.__rect = () => ({ x: actor.x - actor.anchor * cfg.spriteW, y: actor.y + cfg.feetInset - cfg.spriteH, width: cfg.spriteW, height: cfg.spriteH });

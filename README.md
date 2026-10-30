@@ -2,7 +2,8 @@
 
 A free anime desktop pet that reacts to [Claude Code](https://claude.com/claude-code). She thinks while Claude thinks,
 types while it works, waves when it needs you, celebrates when it finishes, and wanders around your screen: she climbs
-the edges of your windows, jumps between them, sits on a window's edge, and falls if you drop her. Windows 10 and 11.
+the edges of your windows, jumps between them, sits on a window's edge, and falls if you drop her. Windows 10 and 11,
+and NixOS (see below; fewer tricks there).
 
 Claude Code's HTTP hooks POST each event to a tiny server on `127.0.0.1:47821`. Nothing leaves your computer and no
 API key is involved. This is an unofficial fan project, not affiliated with or endorsed by Anthropic.
@@ -24,6 +25,24 @@ API key is involved. This is an unofficial fan project, not affiliated with or e
 
 Nothing else needs installing: Electron is bundled. To try her without installing, run **Claude Pet.bat**. To remove
 her: Start menu, "Uninstall Claude Pet".
+
+## NixOS
+
+```
+nix run .                      # in a checkout, or: nix run github:<owner>/<repo>
+```
+
+or add `claude-pet.packages.${system}.default` to `environment.systemPackages` / `home.packages`, then run
+`claude-pet`. Hooks install from the tray menu as on Windows.
+
+- It runs on nixpkgs' Electron, forced onto X11 (XWayland on a Wayland session): Wayland does not let an app place a
+  window or keep it on top. The transparent window needs a compositing session; GNOME needs the AppIndicator
+  extension for the tray icon.
+- She climbs and stands on open X11 windows (`src/x11windows.c`, built by the flake). On a Wayland session that means
+  only the XWayland ones: native Wayland windows are invisible to her, and Wayland has no way to list them.
+- Not there yet: characters dropped into a folder (needs sharp, and the Nix store is read-only). It has the two
+  built-in characters.
+- Flakes only see files git tracks: `git add` new files before building, and commit `flake.lock` (`nix flake lock`).
 
 ## Make your own character
 
