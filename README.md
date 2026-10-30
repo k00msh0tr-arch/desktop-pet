@@ -38,6 +38,9 @@ or add `claude-pet.packages.${system}.default` to `environment.systemPackages` /
 - It runs on nixpkgs' Electron, forced onto X11 (XWayland on a Wayland session): Wayland does not let an app place a
   window or keep it on top. The transparent window needs a compositing session; GNOME needs the AppIndicator
   extension for the tray icon.
+- Only she takes clicks: the overlay is cut to a box round her (and her confetti), because a Linux window can't
+  forward the mouse while it is click-through. The empty corners of that box swallow clicks. If clicks stop reaching
+  your other apps, quit her from the tray (or Ctrl+C) and report it. `PET_SHAPE=1 npm start` tries the same elsewhere.
 - She climbs and stands on open X11 windows (`src/x11windows.c`, built by the flake). On a Wayland session that means
   only the XWayland ones: native Wayland windows are invisible to her, and Wayland has no way to list them.
 - Not there yet: characters dropped into a folder (needs sharp, and the Nix store is read-only). It has the two

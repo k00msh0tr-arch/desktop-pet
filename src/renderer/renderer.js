@@ -227,6 +227,58 @@ function tickConfetti(dt) {
   if (!parts.length) g2d.clearRect(0, 0, fx.width, fx.height);
 }
 
+// ---- window shape (Linux) -----------------------------------------------------------
+// A click-through window can't forward the mouse there, and under XWayland the cursor can't be read while it is
+// click-through. So the window is cut to a box round her (and round any confetti): only that takes clicks and
+// the rest of the screen belongs to the windows underneath.
+function bodyBox(m) {
+  if (m.box) return m.box;
+  let x0 = m.w, x1 = -1, y0 = m.h, y1 = -1;
+  for (let y = 0; y < m.h; y++) {
+    for (let x = 0; x < m.w; x++) {
+      if (!m.data[y * m.w + x]) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      y1 = y;
+    }
+  }
+  return (m.box = { u0: x0 / m.w, u1: (x1 + 1) / m.w, v0: y0 / m.h, v1: (y1 + 1) / m.h });
+}
+
+// a rectangle round [x0,x1] x [y0,y1] with some room, on a grid of q pixels, inside the screen
+function shapeRect(x0, y0, x1, y1, q) {
+  const pad = 12;
+  const l = Math.max(0, Math.min(world.width - 1, Math.floor((x0 - pad) / q) * q));
+  const t = Math.max(0, Math.min(world.height - 1, Math.floor((y0 - pad) / q) * q));
+  const r = Math.max(l + 1, Math.min(world.width, Math.ceil((x1 + pad) / q) * q));
+  const b = Math.max(t + 1, Math.min(world.height, Math.ceil((y1 + pad) / q) * q));
+  return { x: l, y: t, width: r - l, height: b - t };
+}
+
+let shapeKey = '';
+function syncShape() {
+  const r = spr.getBoundingClientRect(); // where she really is, after hopping, sitting down, tilting
+  let x0 = r.left, x1 = r.right, y0 = r.top, y1 = r.bottom;
+  if (actor.rot === 0) { // not tilted: just her body
+    const masks = cfg.masks[shown.pose] || cfg.masks.idle;
+    const b = bodyBox(masks[Math.min(shown.idx, masks.length - 1)]);
+    const [u0, u1] = shown.mirror ? [2 * cfg.anchor - b.u1, 2 * cfg.anchor - b.u0] : [b.u0, b.u1];
+    x0 = r.left + MARGIN + u0 * cfg.spriteW; x1 = r.left + MARGIN + u1 * cfg.spriteW;
+    y0 = r.top + MARGIN + b.v0 * cfg.spriteH; y1 = r.top + MARGIN + b.v1 * cfg.spriteH;
+  }
+  const rects = [shapeRect(x0, y0, x1, y1, 4)];
+  if (parts.length) { // the confetti has to stay inside the shape to be drawn
+    const dpr = devicePixelRatio;
+    const xs = parts.map((p) => p.x / dpr), ys = parts.map((p) => p.y / dpr);
+    rects.push(shapeRect(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), 16));
+  }
+  const key = JSON.stringify(rects);
+  if (key === shapeKey) return;
+  shapeKey = key;
+  window.pet.shape(rects);
+}
+
 // ---- main loop ------------------------------------------------------------------
 function loop(now) {
   requestAnimationFrame(loop);
@@ -252,6 +304,7 @@ function loop(now) {
     lastDraw = now;
   }
   tickConfetti(dt);
+  if (cfg.shaped) syncShape();
 
   // she moves under a stationary cursor, so re-check what is under it now and then
   if (!down && now - lastHover > 100) {
@@ -275,6 +328,7 @@ function overSprite(x, y) {
 }
 
 function setIgnore(value) {
+  if (cfg && cfg.shaped) return; // the window is shaped to her instead, see syncShape
   if (value === ignoring) return;
   ignoring = value;
   window.pet.setIgnore(value);
@@ -342,12 +396,6 @@ window.pet.onWindows((list) => {
 window.pet.onSettings((s) => { wander = s.wander; });
 window.pet.onPreview(({ pose, ms }) => { preview = { pose, until: performance.now() + ms }; });
 window.pet.onDrop(() => { if (actor) actor.dropFromTop(); });
-// Linux only: real mouse events don't arrive while she is click-through, so main sends the cursor instead
-window.pet.onCursor(({ x, y }) => {
-  if (!ignoring || down) return;
-  mouse = { x, y };
-  setIgnore(!overSprite(x, y));
-});
 
 // hooks for the self-test screenshots
 window.__rect = () => ({ x: actor.x - actor.anchor * cfg.spriteW, y: actor.y + cfg.feetInset - cfg.spriteH, width: cfg.spriteW, height: cfg.spriteH });

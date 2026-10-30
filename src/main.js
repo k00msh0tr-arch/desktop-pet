@@ -23,6 +23,10 @@ const FALLBACK = { blink: 'idle', working: 'thinking', thanks: 'happy', sleeping
 // The Nix build has no sharp and a read-only characters folder, whose file times Nix also resets, so every
 // character would look out of date: it ships the built-in characters only.
 const CAN_IMPORT = !process.env.PET_NO_IMPORT;
+// Linux has no { forward: true } for a click-through window, and under XWayland the cursor can't be read while she is
+// click-through, so there the window is cut to a box round her instead (see syncShape in the renderer).
+// PET_SHAPE=1 tries the same on another system.
+const SHAPED = process.platform === 'linux' || !!process.env.PET_SHAPE;
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
@@ -171,7 +175,7 @@ function initPayload() {
   return {
     frames: scaledFrames(), variants: VARIANTS, masks, has: character.has, motion: character.motion, fps: character.manifest.fps || 6,
     ...sprite(), world: { width: overlay.width, height: overlay.height }, windows: windowsForOverlay(),
-    wander: config.wander, state: pet.state,
+    wander: config.wander, state: pet.state, shaped: SHAPED,
   };
 }
 
@@ -201,7 +205,9 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   if (config.onTop) win.setAlwaysOnTop(true, 'floating');
-  win.setIgnoreMouseEvents(true, { forward: true });
+  // until the renderer sends her box, only a corner pixel takes clicks
+  if (SHAPED) win.setShape([{ x: 0, y: 0, width: 1, height: 1 }]);
+  else win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.once('ready-to-show', () => win.showInactive());
   win.on('closed', () => { win = null; });
@@ -475,6 +481,7 @@ function wireIpc() {
     win.webContents.send('init', initPayload());
   });
   ipcMain.on('ignore', (_e, ignore) => win && win.setIgnoreMouseEvents(ignore, { forward: true }));
+  ipcMain.on('shape', (_e, rects) => win && win.setShape(rects));
   ipcMain.on('click', () => pet.click());
   ipcMain.on('context-menu', () => buildMenu().popup({ window: win }));
   // she was dragged off the edge of this display: follow the cursor onto the next one
@@ -611,14 +618,6 @@ if (gotLock) app.whenReady().then(() => {
     },
   });
   startWatcher();
-  // Linux has no { forward: true }: while she is click-through the page gets no mouse events, so hand it the cursor
-  if (process.platform === 'linux') {
-    setInterval(() => {
-      if (!win) return;
-      const p = screen.getCursorScreenPoint();
-      win.webContents.send('cursor', { x: p.x - overlay.x, y: p.y - overlay.y });
-    }, 33);
-  }
   if (CAN_IMPORT) {
     watchCharacters();
     importCharacters(); // pick up anything dropped in while she was not running
